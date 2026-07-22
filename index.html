@@ -234,6 +234,7 @@
   <div class="master-sub-tabs">
     <div class="master-sub-tab active" data-master="maker">🏭 メーカー</div>
     <div class="master-sub-tab" data-master="insurance">🛡️ 保険会社</div>
+    <div class="master-sub-tab" data-master="bodyShape">🚚 車体の形状</div>
     <div class="master-sub-tab" data-master="area">🗺️ エリア</div>
   </div>
 
@@ -255,6 +256,15 @@
       <div class="field-row"><div class="field"><label>保険会社名</label><input type="text" id="newInsurerName" placeholder="例：東京海上日動"></div></div>
       <div class="field-row"><div class="field"><label>電話番号（任意）</label><input type="tel" id="newInsurerPhone" placeholder="0120-XXX-XXX"></div></div>
       <button type="button" class="submit-btn" id="addInsurerBtn">追加</button>
+    </div>
+  </div>
+
+  <!-- 車体の形状 -->
+  <div class="master-panel" id="masterPanel-bodyShape">
+    <div id="bodyShapeList" style="margin-top:14px;"></div>
+    <div class="add-master-form">
+      <div class="field-row"><div class="field"><label>車体の形状名</label><input type="text" id="newBodyShape" placeholder="例：ダンプ"></div></div>
+      <button type="button" class="submit-btn" id="addBodyShapeBtn">追加</button>
     </div>
   </div>
 
@@ -309,15 +319,8 @@
         <label>車体の形状</label>
         <select id="bodyShape">
           <option value="">未選択</option>
-          <option value="平ボディ">平ボディ</option>
-          <option value="ダンプ">ダンプ</option>
-          <option value="アームロール">アームロール</option>
-          <option value="パッカー車">パッカー車</option>
-          <option value="ウイング車">ウイング車</option>
-          <option value="アルミバン">アルミバン</option>
-          <option value="重機運搬車">重機運搬車</option>
-          <option value="その他">その他</option>
         </select>
+        <div class="field-hint">一覧にない場合は⚙️マスター管理タブから追加してください</div>
       </div>
       <div class="field-row">
         <div class="field"><label>最大積載量(kg)</label><input type="number" id="maxLoad" placeholder="kg"></div>
@@ -383,6 +386,9 @@ const PERMIT_COLLECTION = "kyokaShoumei";
 const AREA_COLLECTION = "managedAreas";
 const MAKER_COLLECTION = "vehicleMakers";
 const INSURER_COLLECTION = "insuranceCompanies";
+const BODYSHAPE_COLLECTION = "bodyShapes";
+
+const DEFAULT_BODY_SHAPES = ["平ボディ","ダンプ","アームロール","パッカー車","ウイング車","アルミバン","重機運搬車","その他"];
 
 const DEFAULT_AREAS = [
   { name: "長野県", type: "prefecture" }, { name: "群馬県", type: "prefecture" }, { name: "埼玉県", type: "prefecture" },
@@ -391,10 +397,11 @@ const DEFAULT_AREAS = [
   { name: "千曲市", type: "city" }, { name: "長野市", type: "city" }, { name: "中野市", type: "city" }
 ];
 
-let allVehicles = [], allPermits = [], allAreas = [], allMakers = [], allInsurers = [];
+let allVehicles = [], allPermits = [], allAreas = [], allMakers = [], allInsurers = [], allBodyShapes = [];
 let currentSearch = "", currentPermitSearch = "", currentAreaGridSearch = "";
 let expandedCompanyIds = new Set();
 let areaSeeded = false;
+let bodyShapeSeeded = false;
 
 function getStatus(dateStr) {
   if (!dateStr) return null;
@@ -583,6 +590,20 @@ function subscribeInsurers() {
     renderMasterItems("insurerList", allInsurers, i => escapeHtml(i.phone||"電話番号未登録"), "deleteInsurer", "まだ保険会社が登録されていません");
   });
 }
+async function subscribeBodyShapes() {
+  db.collection(BODYSHAPE_COLLECTION).orderBy("name").onSnapshot(async snapshot => {
+    if (snapshot.empty && !bodyShapeSeeded) {
+      bodyShapeSeeded = true;
+      const batch = db.batch();
+      DEFAULT_BODY_SHAPES.forEach(name => batch.set(db.collection(BODYSHAPE_COLLECTION).doc(), { name }));
+      await batch.commit();
+      return;
+    }
+    allBodyShapes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    populateBodyShapeSelect();
+    renderMasterItems("bodyShapeList", allBodyShapes, () => "", "deleteBodyShape", "まだ登録されていません");
+  });
+}
 async function subscribeAreas() {
   db.collection(AREA_COLLECTION).onSnapshot(async snapshot => {
     if (snapshot.empty && !areaSeeded) {
@@ -607,7 +628,7 @@ document.getElementById("addBtn").addEventListener("click", () => {
   document.getElementById("editId").value = "";
   document.getElementById("modalTitle").textContent = "車両を追加";
   document.getElementById("deleteBtnInModal").style.display = "none";
-  populateMakerSelect(""); populateInsuranceSelect("");
+  populateMakerSelect(""); populateInsuranceSelect(""); populateBodyShapeSelect("");
   vehicleOverlay.classList.add("open");
 });
 document.getElementById("cancelBtn").addEventListener("click", () => vehicleOverlay.classList.remove("open"));
@@ -623,7 +644,7 @@ window.openEdit = function(id) {
   document.getElementById("registeredDate").value = v.registeredDate || "";
   document.getElementById("shakenDate").value = v.shakenDate || "";
   populateInsuranceSelect(v.insuranceCompany || "");
-  document.getElementById("bodyShape").value = v.bodyShape || "";
+  populateBodyShapeSelect(v.bodyShape || "");
   document.getElementById("maxLoad").value = v.maxLoad || "";
   document.getElementById("vehicleWeight").value = v.vehicleWeight || "";
   document.getElementById("grossWeight").value = v.grossWeight || "";
@@ -881,6 +902,24 @@ document.getElementById("addInsurerBtn").addEventListener("click", async () => {
   document.getElementById("newInsurerName").value = ""; document.getElementById("newInsurerPhone").value = "";
 });
 
+function populateBodyShapeSelect(selectedName) {
+  const el = document.getElementById("bodyShape");
+  const current = selectedName !== undefined ? selectedName : el.value;
+  el.innerHTML = `<option value="">未選択</option>` + allBodyShapes.map(b =>
+    `<option value="${escapeHtml(b.name)}" ${b.name===current?"selected":""}>${escapeHtml(b.name)}</option>`
+  ).join("");
+}
+window.deleteBodyShape = function(id) {
+  if (!confirm("この車体の形状を削除しますか？")) return;
+  db.collection(BODYSHAPE_COLLECTION).doc(id).delete();
+};
+document.getElementById("addBodyShapeBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newBodyShape").value.trim();
+  if (!name) { alert("車体の形状名を入力してください"); return; }
+  await db.collection(BODYSHAPE_COLLECTION).add({ name });
+  document.getElementById("newBodyShape").value = "";
+});
+
 function renderAreaMasterLists() {
   const prefectures = allAreas.filter(a => a.type === "prefecture").sort((a,b)=>a.name.localeCompare(b.name));
   const cities = allAreas.filter(a => a.type === "city").sort((a,b)=>a.name.localeCompare(b.name));
@@ -936,6 +975,7 @@ subscribePermits();
 subscribeAreas();
 subscribeMakers();
 subscribeInsurers();
+subscribeBodyShapes();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
