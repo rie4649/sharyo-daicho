@@ -158,6 +158,22 @@
 
   .loading { text-align: center; padding: 40px; color: #9aa3af; }
 
+  .area-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #e0e6e4;
+  }
+  .area-checkbox-item {
+    display: flex; align-items: center; gap: 6px; font-size: 13px;
+    padding: 6px 8px; border-radius: 8px; background: #f2f4f7;
+  }
+  .area-checkbox-item.checked { background: #e6f4f2; color: #0f766e; font-weight: 700; }
+  .area-checkbox-item input { width: auto; }
+  .area-group-label { grid-column: 1 / -1; font-size: 11px; color: #8b95a3; font-weight: 700; margin-top: 4px; }
+
   .install-btn {
     background: rgba(255,255,255,0.15);
     border: none; color: #fff; font-size: 12px; font-weight: 700;
@@ -182,6 +198,7 @@
   <div class="main-tabs">
     <div class="main-tab active" data-section="vehicle">🚛 車両台帳</div>
     <div class="main-tab" data-section="permit">📋 許可証管理</div>
+    <div class="main-tab" data-section="areaGrid">🗺️ 許可車両管理</div>
   </div>
 </header>
 
@@ -225,6 +242,22 @@
   </div>
 
   <button class="fab permit-fab" id="addPermitBtn">＋</button>
+</div>
+
+<!-- ================= 許可車両管理セクション ================= -->
+<div class="section" id="section-areaGrid">
+  <div class="company-count-bar" id="areaCountBar"></div>
+
+  <div class="toolbar-row">
+    <div class="search-box">
+      <input type="text" id="areaGridSearchInput" placeholder="愛称・車番で検索">
+    </div>
+    <button class="jpeg-btn" id="jpegBtnAreaGrid">🖨️ JPEG</button>
+  </div>
+
+  <div class="list" id="areaGridContainer">
+    <div class="loading">読み込み中...</div>
+  </div>
 </div>
 
 <!-- 車両追加/編集モーダル -->
@@ -369,6 +402,11 @@ function fmtNum(n) {
 }
 function formatDate(d) { return d || "-"; }
 function areaLabel(p) { return p.city ? `${p.prefecture} ${p.city}` : p.prefecture; }
+
+const AREA_LIST = ["長野県","群馬県","埼玉県","新潟県","山梨県","上田市","東御市","坂城町","千曲市","長野市","中野市"];
+const AREA_PREFECTURES = ["長野県","群馬県","埼玉県","新潟県","山梨県"];
+const AREA_CITIES = ["上田市","東御市","坂城町","千曲市","長野市","中野市"];
+let currentAreaGridSearch = "";
 
 document.querySelectorAll(".main-tab").forEach(tab => {
   tab.addEventListener("click", () => {
@@ -520,6 +558,7 @@ function subscribeVehicles() {
     allVehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderVehicles();
     renderPermits();
+    renderAreaGrid();
   }, err => {
     document.getElementById("listContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`;
   });
@@ -619,6 +658,100 @@ vehicleFormEl.addEventListener("submit", async (e) => {
   } catch (err) {
     alert("保存エラー: " + err.message);
   }
+});
+
+// ================= 許可車両管理 =================
+function renderAreaGrid() {
+  const container = document.getElementById("areaGridContainer");
+  let filtered = allVehicles;
+
+  if (currentAreaGridSearch.trim()) {
+    const q = currentAreaGridSearch.trim().toLowerCase();
+    filtered = filtered.filter(v =>
+      (v.nickname||"").toLowerCase().includes(q) ||
+      (v.plateNumber||"").toLowerCase().includes(q)
+    );
+  }
+
+  // エリア別の保有台数サマリー
+  const areaCounts = {};
+  AREA_LIST.forEach(a => areaCounts[a] = 0);
+  allVehicles.forEach(v => {
+    (v.permittedAreas||[]).forEach(a => { if (areaCounts[a] !== undefined) areaCounts[a]++; });
+  });
+  const areaCountBar = document.getElementById("areaCountBar");
+  areaCountBar.innerHTML = AREA_LIST.map(a =>
+    `<div class="company-count-chip">${escapeHtml(a)} <b>${areaCounts[a]}台</b></div>`
+  ).join("");
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state">該当する車両がありません</div>';
+    return;
+  }
+
+  filtered = [...filtered].sort((a,b) => (a.plateNumber||"").localeCompare(b.plateNumber||""));
+
+  container.innerHTML = filtered.map(v => {
+    const permitted = v.permittedAreas || [];
+    const prefBoxes = AREA_PREFECTURES.map(a => {
+      const checked = permitted.includes(a);
+      return `
+        <label class="area-checkbox-item ${checked ? "checked" : ""}">
+          <input type="checkbox" class="area-checkbox" data-vehicle-id="${v.id}" data-area="${escapeHtml(a)}" ${checked ? "checked" : ""}>
+          <span>${escapeHtml(a)}</span>
+        </label>
+      `;
+    }).join("");
+    const cityBoxes = AREA_CITIES.map(a => {
+      const checked = permitted.includes(a);
+      return `
+        <label class="area-checkbox-item ${checked ? "checked" : ""}">
+          <input type="checkbox" class="area-checkbox" data-vehicle-id="${v.id}" data-area="${escapeHtml(a)}" ${checked ? "checked" : ""}>
+          <span>${escapeHtml(a)}</span>
+        </label>
+      `;
+    }).join("");
+
+    return `
+      <div class="card">
+        <div class="card-top">
+          <div>
+            <div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div>
+            <div class="card-sub">${escapeHtml(v.plateNumber||"")}</div>
+          </div>
+        </div>
+        <div class="area-checkbox-grid">
+          <div class="area-group-label">都道府県</div>
+          ${prefBoxes}
+          <div class="area-group-label">市区町村</div>
+          ${cityBoxes}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.querySelectorAll(".area-checkbox").forEach(cb => {
+    cb.addEventListener("change", async (e) => {
+      const vehicleId = e.target.dataset.vehicleId;
+      const area = e.target.dataset.area;
+      const field = firebase.firestore.FieldValue;
+      try {
+        await db.collection(VEHICLE_COLLECTION).doc(vehicleId).update({
+          permittedAreas: e.target.checked ? field.arrayUnion(area) : field.arrayRemove(area)
+        });
+      } catch (err) {
+        alert("更新エラー: " + err.message);
+      }
+    });
+  });
+}
+
+document.getElementById("areaGridSearchInput").addEventListener("input", (e) => {
+  currentAreaGridSearch = e.target.value;
+  renderAreaGrid();
+});
+document.getElementById("jpegBtnAreaGrid").addEventListener("click", () => {
+  exportAsJpeg("areaGridContainer", "許可車両管理.jpg");
 });
 
 // ================= 許可証管理 =================
