@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#0f766e">
+<meta name="theme-color" content="#1e3a5f">
 <meta name="translate" content="no">
 <meta http-equiv="Content-Language" content="ja">
-<title>許可証管理</title>
+<title>車両台帳</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -15,41 +15,92 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
-    background: #f4f6f5;
-    color: #1a2e2b;
+    background: #f2f4f7;
+    color: #1a2433;
     padding-bottom: 100px;
   }
   header {
-    background: linear-gradient(135deg, #0f766e, #115e59);
+    background: linear-gradient(135deg, #1e3a5f, #14283f);
     color: #fff;
-    padding: 20px 16px 16px;
+    padding: 20px 16px 0;
     position: sticky;
     top: 0;
     z-index: 20;
     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   }
-  header h1 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
-  .summary-bar {
+  .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  header h1 { font-size: 20px; font-weight: 700; }
+  .settings-btn {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+
+  /* メインタブ */
+  .main-tabs {
     display: flex;
     gap: 8px;
+    padding-bottom: 12px;
   }
+  .main-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px;
+    border-radius: 10px 10px 0 0;
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.7);
+    font-size: 13.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .main-tab.active { background: #f2f4f7; color: #1e3a5f; }
+
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .summary-bar { display: flex; gap: 8px; padding: 14px 16px 0; }
   .summary-chip {
     flex: 1;
-    background: rgba(255,255,255,0.15);
+    background: #fff;
     border-radius: 10px;
     padding: 8px 10px;
     text-align: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
   }
   .summary-chip .num { font-size: 18px; font-weight: 800; display: block; }
-  .summary-chip .label { font-size: 11px; opacity: 0.9; }
-  .summary-chip.ok .num { color: #86efac; }
-  .summary-chip.warn .num { color: #fde047; }
-  .summary-chip.expired .num { color: #fca5a5; }
+  .summary-chip .label { font-size: 11px; color: #7a8996; }
+  .summary-chip.total .num { color: #1e3a5f; }
+  .summary-chip.ok .num { color: #15803d; }
+  .summary-chip.warn .num { color: #a16207; }
+  .summary-chip.expired .num { color: #b91c1c; }
+
+  .company-count-bar {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding: 10px 16px 0;
+  }
+  .company-count-chip {
+    flex-shrink: 0;
+    background: #fff;
+    border: 1px solid #e0e6ed;
+    border-radius: 999px;
+    padding: 5px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+    color: #56626e;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .company-count-chip b { color: #1e3a5f; }
 
   .filter-tabs {
     display: flex;
     gap: 6px;
-    padding: 10px 16px 0;
+    padding: 14px 16px 0;
     overflow-x: auto;
   }
   .filter-tab {
@@ -68,23 +119,16 @@
     border-color: #0f766e;
   }
 
-  .search-box {
-    margin: 10px 16px 0;
-  }
+  .search-box { margin: 12px 16px 0; }
   .search-box input {
     width: 100%;
     padding: 10px 12px;
     border-radius: 10px;
-    border: 1px solid #d1d9d7;
+    border: 1px solid #d4d9e0;
     font-size: 14px;
   }
 
-  .list {
-    padding: 12px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
+  .list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
   .card {
     background: #fff;
     border-radius: 14px;
@@ -97,13 +141,9 @@
   .card.status-warn { border-left-color: #eab308; }
   .card.status-expired { border-left-color: #ef4444; }
 
-  .card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 6px;
-  }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
   .card-title { font-size: 16px; font-weight: 700; }
+  .card-sub { font-size: 12.5px; color: #6b7686; margin-top: 2px; }
   .card-cat {
     font-size: 11px;
     padding: 2px 8px;
@@ -113,207 +153,241 @@
     margin-top: 4px;
     display: inline-block;
   }
-  .badge {
-    font-size: 12px;
-    font-weight: 700;
-    padding: 3px 10px;
-    border-radius: 999px;
-    white-space: nowrap;
+  .company-link {
+    color: #1e3a5f;
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    cursor: pointer;
   }
+  .company-info-panel {
+    margin-top: 6px;
+    background: #f2f4f7;
+    border-radius: 8px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12.5px;
+  }
+  .company-info-panel a { color: #1e3a5f; text-decoration: none; font-weight: 600; }
+  .company-info-panel .empty { color: #9aa3af; }
+
+  .badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
   .badge.status-ok { background: #dcfce7; color: #15803d; }
   .badge.status-warn { background: #fef9c3; color: #a16207; }
   .badge.status-expired { background: #fee2e2; color: #b91c1c; }
+  .badge-label { font-size: 10.5px; color: #8b95a3; text-align: right; margin-top: 2px; }
 
-  .card-row {
-    font-size: 13px;
-    color: #445c58;
-    margin-top: 4px;
-    display: flex;
-    justify-content: space-between;
-  }
-  .card-row .k { color: #7a8c89; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 8px; }
+  .card-row { font-size: 13px; color: #445; }
+  .card-row .k { color: #8b95a3; font-size: 11.5px; display: block; }
+  .card-row a { color: #1e3a5f; text-decoration: none; font-weight: 600; }
+
+  /* 許可証カード専用の行スタイル(社内既存カードとは別名で衝突回避) */
+  .prow { font-size: 13px; color: #445c58; margin-top: 4px; display: flex; justify-content: space-between; }
+  .prow .k { color: #7a8c89; }
   .card-notes {
-    margin-top: 8px;
-    font-size: 12.5px;
-    color: #5a6b68;
-    background: #f4f6f5;
-    border-radius: 8px;
-    padding: 6px 8px;
+    margin-top: 8px; font-size: 12.5px; color: #5a6b68;
+    background: #f4f6f5; border-radius: 8px; padding: 6px 8px;
   }
-  .card-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
+
+  .permit-chips, .vehicle-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .vehicle-chips { padding-top: 8px; border-top: 1px dashed #e0e6e4; align-items: center; }
+  .vehicle-chips-label { font-size: 11px; color: #7a8c89; margin-right: 4px; width: 100%; }
+  .permit-chip, .vehicle-chip {
+    font-size: 11.5px; padding: 4px 9px; border-radius: 999px;
+    background: #eef1f6; color: #334; border: 1px solid #dde2ea;
   }
-  .card-actions button {
-    flex: 1;
-    padding: 7px;
-    border-radius: 8px;
-    border: none;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .btn-edit { background: #e6f4f2; color: #0f766e; }
+  .permit-chip.status-ok { border-color: #86efac; color: #15803d; }
+  .permit-chip.status-warn { border-color: #fde047; color: #a16207; }
+  .permit-chip.status-expired { border-color: #fca5a5; color: #b91c1c; }
+  .permit-chip.none, .vehicle-chip.none { color: #9aa3af; }
+
+  .card-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .card-actions button { flex: 1; padding: 7px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; }
+  .btn-edit { background: #e8edf5; color: #1e3a5f; }
   .btn-delete { background: #fee2e2; color: #b91c1c; }
 
-  .empty-state {
-    text-align: center;
-    color: #8a9995;
-    padding: 60px 20px;
-    font-size: 14px;
-  }
-
-  .vehicle-chips {
-    margin-top: 10px;
-    padding-top: 8px;
-    border-top: 1px dashed #e0e6e4;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-  }
-  .vehicle-chips-label {
-    font-size: 11px;
-    color: #7a8c89;
-    margin-right: 4px;
-    width: 100%;
-  }
-  .vehicle-chip {
-    font-size: 11.5px;
-    padding: 4px 9px;
-    border-radius: 999px;
-    background: #eef1f6;
-    color: #334;
-    border: 1px solid #dde2ea;
-  }
-  .vehicle-chip.none { color: #9aa3af; }
+  .empty-state { text-align: center; color: #9aa3af; padding: 60px 20px; font-size: 14px; }
 
   .fab {
-    position: fixed;
-    right: 20px;
-    bottom: 24px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: #0f766e;
-    color: #fff;
-    font-size: 28px;
-    border: none;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    cursor: pointer;
-    z-index: 30;
+    position: fixed; right: 20px; bottom: 24px; width: 56px; height: 56px; border-radius: 50%;
+    background: #1e3a5f; color: #fff; font-size: 28px; border: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25); cursor: pointer; z-index: 30;
   }
+  .fab.permit-fab { background: #0f766e; }
 
   .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.45);
-    z-index: 50;
-    align-items: flex-end;
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50; align-items: flex-end;
   }
   .modal-overlay.open { display: flex; }
   .modal {
-    background: #fff;
-    width: 100%;
-    max-height: 92vh;
-    overflow-y: auto;
-    border-radius: 18px 18px 0 0;
-    padding: 20px 18px 30px;
+    background: #fff; width: 100%; max-height: 92vh; overflow-y: auto;
+    border-radius: 18px 18px 0 0; padding: 20px 18px 30px;
   }
   .modal h2 { font-size: 17px; margin-bottom: 14px; }
   .field { margin-bottom: 12px; }
-  .field label {
-    display: block;
-    font-size: 12.5px;
-    color: #556; 
-    margin-bottom: 4px;
-    font-weight: 600;
-  }
+  .field label { display: block; font-size: 12.5px; color: #556; margin-bottom: 4px; font-weight: 600; }
   .field input, .field select, .field textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #d1d9d7;
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: inherit;
+    width: 100%; padding: 10px; border: 1px solid #d4d9e0; border-radius: 8px; font-size: 14px; font-family: inherit;
+    background: #fff;
   }
   .field textarea { resize: vertical; min-height: 60px; }
+  .field-row { display: flex; gap: 10px; }
+  .field-row .field { flex: 1; }
+  .field-hint { font-size: 11.5px; color: #9aa3af; margin-top: 4px; }
+
   .radio-group { display: flex; gap: 8px; }
   .radio-group label {
-    flex: 1;
-    text-align: center;
-    padding: 10px;
-    border: 1px solid #d1d9d7;
-    border-radius: 8px;
-    font-size: 13px;
-    cursor: pointer;
+    flex: 1; text-align: center; padding: 10px; border: 1px solid #d1d9d7; border-radius: 8px; font-size: 13px; cursor: pointer;
   }
   .radio-group input { display: none; }
-  .radio-group input:checked + span {
-    color: #0f766e;
-    font-weight: 700;
-  }
-  .radio-group label:has(input:checked) {
-    border-color: #0f766e;
-    background: #e6f4f2;
-  }
-  .modal-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 18px;
-  }
-  .modal-actions button {
-    flex: 1;
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    font-size: 15px;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .btn-cancel { background: #eee; color: #555; }
-  .btn-save { background: #0f766e; color: #fff; }
+  .radio-group input:checked + span { color: #0f766e; font-weight: 700; }
+  .radio-group label:has(input:checked) { border-color: #0f766e; background: #e6f4f2; }
 
-  .loading {
-    text-align: center;
-    padding: 40px;
-    color: #8a9995;
+  .permit-select-list { border: 1px solid #d4d9e0; border-radius: 8px; max-height: 180px; overflow-y: auto; }
+  .permit-select-item {
+    display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-bottom: 1px solid #eef1f6; font-size: 13px;
   }
+  .permit-select-item:last-child { border-bottom: none; }
+  .permit-select-item input { width: auto; }
+  .permit-select-empty { padding: 14px; text-align: center; color: #9aa3af; font-size: 13px; }
+
+  .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .modal-actions button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; }
+  .btn-cancel { background: #eee; color: #555; }
+  .btn-save { background: #1e3a5f; color: #fff; }
+  .btn-save.permit-save { background: #0f766e; }
+
+  .loading { text-align: center; padding: 40px; color: #9aa3af; }
+
+  /* 設定モーダル */
+  .settings-tabs { display: flex; gap: 8px; margin-bottom: 14px; }
+  .settings-tab { flex: 1; text-align: center; padding: 9px; border-radius: 8px; background: #f2f4f7; color: #556; font-size: 13px; font-weight: 600; cursor: pointer; }
+  .settings-tab.active { background: #1e3a5f; color: #fff; }
+  .settings-panel { display: none; }
+  .settings-panel.active { display: block; }
+  .master-item { display: flex; justify-content: space-between; align-items: center; background: #f8f9fb; border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+  .master-item-info { font-size: 13.5px; }
+  .master-item-info .name { font-weight: 700; }
+  .master-item-info .sub { font-size: 11.5px; color: #8b95a3; margin-top: 2px; }
+  .master-item-actions { display: flex; gap: 6px; }
+  .master-item-actions button { border: none; border-radius: 6px; padding: 5px 9px; font-size: 12px; cursor: pointer; }
+  .master-item-actions .btn-del { background: #fee2e2; color: #b91c1c; }
+  .add-master-form { background: #f2f4f7; border-radius: 10px; padding: 12px; margin-top: 12px; }
+  .add-master-form .field-row { margin-bottom: 8px; }
+  .add-master-form button { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #1e3a5f; color: #fff; font-weight: 700; font-size: 13.5px; cursor: pointer; }
 </style>
 </head>
 <body>
 
 <header>
-  <h1>📋 許可証管理</h1>
-  <div class="summary-bar">
-    <div class="summary-chip ok"><span class="num" id="countOk">-</span><span class="label">有効</span></div>
-    <div class="summary-chip warn"><span class="num" id="countWarn">-</span><span class="label">期限間近</span></div>
-    <div class="summary-chip expired"><span class="num" id="countExpired">-</span><span class="label">期限切れ</span></div>
+  <div class="header-top">
+    <h1>🚛 車両台帳</h1>
+    <button class="settings-btn" id="settingsBtn">⚙️</button>
+  </div>
+  <div class="main-tabs">
+    <div class="main-tab active" data-section="vehicle">🚛 車両台帳</div>
+    <div class="main-tab" data-section="permit">📋 許可証管理</div>
   </div>
 </header>
 
-<div class="filter-tabs">
-  <div class="filter-tab active" data-cat="all">すべて</div>
-  <div class="filter-tab" data-cat="sanpai">産廃収集運搬</div>
-  <div class="filter-tab" data-cat="other">その他</div>
+<!-- ================= 車両台帳セクション ================= -->
+<div class="section active" id="section-vehicle">
+  <div class="summary-bar">
+    <div class="summary-chip total"><span class="num" id="countTotal">-</span><span class="label">総台数</span></div>
+    <div class="summary-chip ok"><span class="num" id="countOk">-</span><span class="label">車検有効</span></div>
+    <div class="summary-chip warn"><span class="num" id="countWarn">-</span><span class="label">車検間近</span></div>
+    <div class="summary-chip expired"><span class="num" id="countExpired">-</span><span class="label">車検切れ</span></div>
+  </div>
+  <div class="company-count-bar" id="companyCountBar"></div>
+
+  <div class="search-box">
+    <input type="text" id="searchInput" placeholder="社名・愛称・車番で検索">
+  </div>
+
+  <div class="list" id="listContainer">
+    <div class="loading">読み込み中...</div>
+  </div>
+
+  <button class="fab" id="addBtn">＋</button>
 </div>
 
-<div class="search-box">
-  <input type="text" id="searchInput" placeholder="都道府県・許可番号・担当者で検索">
+<!-- ================= 許可証管理セクション ================= -->
+<div class="section" id="section-permit">
+  <div class="summary-bar">
+    <div class="summary-chip ok"><span class="num" id="permitCountOk">-</span><span class="label">有効</span></div>
+    <div class="summary-chip warn"><span class="num" id="permitCountWarn">-</span><span class="label">期限間近</span></div>
+    <div class="summary-chip expired"><span class="num" id="permitCountExpired">-</span><span class="label">期限切れ</span></div>
+  </div>
+
+  <div class="filter-tabs">
+    <div class="filter-tab active" data-cat="all">すべて</div>
+    <div class="filter-tab" data-cat="sanpai">産廃収集運搬</div>
+    <div class="filter-tab" data-cat="other">その他</div>
+  </div>
+
+  <div class="search-box">
+    <input type="text" id="permitSearchInput" placeholder="都道府県・市区町村・許可番号で検索">
+  </div>
+
+  <div class="list" id="permitListContainer">
+    <div class="loading">読み込み中...</div>
+  </div>
+
+  <button class="fab permit-fab" id="addPermitBtn">＋</button>
 </div>
 
-<div class="list" id="listContainer">
-  <div class="loading">読み込み中...</div>
-</div>
-
-<button class="fab" id="addBtn">＋</button>
-
+<!-- 車両追加/編集モーダル -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
-    <h2 id="modalTitle">許可証を追加</h2>
-    <form id="permitForm">
+    <h2 id="modalTitle">車両を追加</h2>
+    <form id="vehicleForm">
       <input type="hidden" id="editId">
+      <div class="field">
+        <label>社名</label>
+        <select id="companyName" required></select>
+        <div class="field-hint">一覧にない場合は⚙️設定から運送会社を追加してください</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>愛称</label><input type="text" id="nickname" placeholder="愛称"></div>
+        <div class="field"><label>車番</label><input type="text" id="plateNumber" placeholder="車番" required></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>登録年月日</label><input type="date" id="registeredDate"></div>
+        <div class="field"><label>車検有効期限</label><input type="date" id="shakenDate"></div>
+      </div>
+      <div class="field">
+        <label>保険会社</label>
+        <select id="insuranceCompany"></select>
+        <div class="field-hint">一覧にない場合は⚙️設定から保険会社を追加してください</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>最大積載量(kg)</label><input type="number" id="maxLoad" placeholder="kg"></div>
+        <div class="field"><label>車両重量(kg)</label><input type="number" id="vehicleWeight" placeholder="kg"></div>
+        <div class="field"><label>車両総重量(kg)</label><input type="number" id="grossWeight" placeholder="kg"></div>
+      </div>
+      <div class="field">
+        <label>紐づく許可証</label>
+        <div class="permit-select-list" id="permitSelectList">
+          <div class="permit-select-empty">読み込み中...</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-cancel" id="cancelBtn">キャンセル</button>
+        <button type="submit" class="btn-save">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 許可証追加/編集モーダル -->
+<div class="modal-overlay" id="permitModalOverlay">
+  <div class="modal">
+    <h2 id="permitModalTitle">許可証を追加</h2>
+    <form id="permitForm">
+      <input type="hidden" id="permitEditId">
       <div class="field">
         <label>種類</label>
         <div class="radio-group">
@@ -354,10 +428,44 @@
         <textarea id="notes" placeholder="メモ"></textarea>
       </div>
       <div class="modal-actions">
-        <button type="button" class="btn-cancel" id="cancelBtn">キャンセル</button>
-        <button type="submit" class="btn-save">保存</button>
+        <button type="button" class="btn-cancel" id="permitCancelBtn">キャンセル</button>
+        <button type="submit" class="btn-save permit-save">保存</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- 設定モーダル -->
+<div class="modal-overlay" id="settingsOverlay">
+  <div class="modal">
+    <h2>⚙️ 設定</h2>
+    <div class="settings-tabs">
+      <div class="settings-tab active" data-tab="company">運送会社</div>
+      <div class="settings-tab" data-tab="insurance">保険会社</div>
+    </div>
+
+    <div class="settings-panel active" id="panel-company">
+      <div id="companyList"></div>
+      <div class="add-master-form">
+        <div class="field-row"><div class="field"><label>社名</label><input type="text" id="newCompanyName" placeholder="社名"></div></div>
+        <div class="field-row"><div class="field"><label>電話番号</label><input type="tel" id="newCompanyPhone" placeholder="0268-XX-XXXX"></div></div>
+        <div class="field-row"><div class="field"><label>住所</label><input type="text" id="newCompanyAddress" placeholder="住所"></div></div>
+        <button type="button" id="addCompanyBtn">運送会社を追加</button>
+      </div>
+    </div>
+
+    <div class="settings-panel" id="panel-insurance">
+      <div id="insuranceList"></div>
+      <div class="add-master-form">
+        <div class="field-row"><div class="field"><label>保険会社名</label><input type="text" id="newInsuranceName" placeholder="保険会社名"></div></div>
+        <div class="field-row"><div class="field"><label>電話番号</label><input type="tel" id="newInsurancePhone" placeholder="0120-XXX-XXX"></div></div>
+        <button type="button" id="addInsuranceBtn">保険会社を追加</button>
+      </div>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" class="btn-cancel" id="settingsCloseBtn">閉じる</button>
+    </div>
   </div>
 </div>
 
@@ -373,52 +481,360 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const COLLECTION = "kyokaShoumei";
 const VEHICLE_COLLECTION = "vehicleLedger";
+const PERMIT_COLLECTION = "kyokaShoumei";
+const TRUCK_COMPANY_COLLECTION = "truckCompanies";
+const INSURANCE_COLLECTION = "insuranceCompanies";
 
-let allPermits = [];
 let allVehicles = [];
-let currentFilter = "all";
+let allPermits = [];
+let allCompanies = [];
+let allInsurers = [];
 let currentSearch = "";
+let currentPermitSearch = "";
+let currentPermitFilter = "all";
+let expandedCompanyIds = new Set();
 
-function getStatus(expiryDate) {
+// ---- 共通ユーティリティ ----
+function getStatus(dateStr) {
+  if (!dateStr) return null;
   const today = new Date();
   today.setHours(0,0,0,0);
-  const exp = new Date(expiryDate);
-  const diffDays = Math.floor((exp - today) / (1000*60*60*24));
+  const d = new Date(dateStr);
+  const diffDays = Math.floor((d - today) / (1000*60*60*24));
   if (diffDays < 0) return "expired";
   if (diffDays <= 90) return "warn";
   return "ok";
 }
-
 function statusLabel(status) {
   if (status === "expired") return "期限切れ";
-  if (status === "warn") return "更新間近";
-  return "有効";
+  if (status === "warn") return "間近";
+  if (status === "ok") return "有効";
+  return "-";
 }
-
-function catLabel(cat) {
-  return cat === "sanpai" ? "産廃収集運搬" : "その他";
+function escapeHtml(str) {
+  if (!str && str !== 0) return "";
+  return String(str).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
-
-function formatDate(d) {
-  if (!d) return "-";
-  return d;
+function fmtNum(n) {
+  if (n === undefined || n === null || n === "") return "-";
+  return Number(n).toLocaleString() + " kg";
 }
+function findCompany(name) { return allCompanies.find(c => c.name === name); }
+function findInsurer(name) { return allInsurers.find(i => i.name === name); }
+function catLabel(cat) { return cat === "sanpai" ? "産廃収集運搬" : "その他"; }
+function formatDate(d) { return d || "-"; }
+function areaLabel(p) { return p.city ? `${p.prefecture} ${p.city}` : p.prefecture; }
 
-function areaLabel(p) {
-  return p.city ? `${p.prefecture} ${p.city}` : p.prefecture;
-}
+// ---- タブ切り替え(メイン) ----
+document.querySelectorAll(".main-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".main-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById("section-" + tab.dataset.section).classList.add("active");
+  });
+});
 
-function render() {
+// ================= 車両台帳 =================
+function renderVehicles() {
   const container = document.getElementById("listContainer");
-  let filtered = allPermits;
+  let filtered = allVehicles;
 
-  if (currentFilter !== "all") {
-    filtered = filtered.filter(p => p.category === currentFilter);
-  }
   if (currentSearch.trim()) {
     const q = currentSearch.trim().toLowerCase();
+    filtered = filtered.filter(v =>
+      (v.companyName||"").toLowerCase().includes(q) ||
+      (v.nickname||"").toLowerCase().includes(q) ||
+      (v.plateNumber||"").toLowerCase().includes(q)
+    );
+  }
+
+  let ok=0, warn=0, expired=0;
+  allVehicles.forEach(v => {
+    const s = getStatus(v.shakenDate);
+    if (s === "ok") ok++;
+    else if (s === "warn") warn++;
+    else if (s === "expired") expired++;
+  });
+  document.getElementById("countTotal").textContent = allVehicles.length;
+  document.getElementById("countOk").textContent = ok;
+  document.getElementById("countWarn").textContent = warn;
+  document.getElementById("countExpired").textContent = expired;
+
+  const companyCounts = {};
+  allVehicles.forEach(v => {
+    const name = v.companyName || "未設定";
+    companyCounts[name] = (companyCounts[name] || 0) + 1;
+  });
+  const companyCountBar = document.getElementById("companyCountBar");
+  const companyNames = Object.keys(companyCounts).sort((a,b) => companyCounts[b] - companyCounts[a]);
+  companyCountBar.innerHTML = companyNames.map(name =>
+    `<div class="company-count-chip">${escapeHtml(name)} <b>${companyCounts[name]}台</b></div>`
+  ).join("");
+
+  filtered = [...filtered].sort((a,b) => {
+    const da = a.shakenDate ? new Date(a.shakenDate) : new Date("9999-12-31");
+    const db_ = b.shakenDate ? new Date(b.shakenDate) : new Date("9999-12-31");
+    return da - db_;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state">該当する車両がありません</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(v => {
+    const shakenStatus = getStatus(v.shakenDate) || "ok";
+    const linkedIds = v.linkedPermitIds || [];
+    const linkedPermits = linkedIds.map(id => allPermits.find(p => p.id === id)).filter(Boolean);
+
+    const permitChipsHtml = linkedPermits.length
+      ? linkedPermits.map(p => {
+          const ps = getStatus(p.expiryDate) || "ok";
+          return `<span class="permit-chip status-${ps}">${escapeHtml(p.area || areaLabel(p))} ・ ${statusLabel(ps)}</span>`;
+        }).join("")
+      : `<span class="permit-chip none">紐づく許可証なし</span>`;
+
+    const company = findCompany(v.companyName);
+    const isExpanded = expandedCompanyIds.has(v.id);
+    let companyInfoPanel = "";
+    if (isExpanded) {
+      if (company && (company.phone || company.address)) {
+        companyInfoPanel = `
+          <div class="company-info-panel">
+            ${company.phone ? `<a href="tel:${escapeHtml(company.phone)}">📞 ${escapeHtml(company.phone)}</a>` : ""}
+            ${company.address ? `<a href="https://maps.google.com/?q=${encodeURIComponent(company.address)}" target="_blank">📍 ${escapeHtml(company.address)}</a>` : ""}
+          </div>
+        `;
+      } else {
+        companyInfoPanel = `<div class="company-info-panel"><span class="empty">電話番号・住所が未登録です（⚙️設定から追加できます）</span></div>`;
+      }
+    }
+
+    const insurer = findInsurer(v.insuranceCompany);
+    const insuranceHtml = v.insuranceCompany
+      ? (insurer && insurer.phone
+          ? `<a href="tel:${escapeHtml(insurer.phone)}">${escapeHtml(v.insuranceCompany)} 📞</a>`
+          : escapeHtml(v.insuranceCompany))
+      : "-";
+
+    return `
+      <div class="card status-${shakenStatus}">
+        <div class="card-top">
+          <div>
+            <div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div>
+            <div class="card-sub">
+              <span class="company-link" onclick="toggleCompanyInfo('${v.id}')">${escapeHtml(v.companyName)}</span>
+              ・ ${escapeHtml(v.plateNumber||"")}
+            </div>
+            ${companyInfoPanel}
+          </div>
+          <div>
+            <div class="badge status-${shakenStatus}">${statusLabel(shakenStatus)}</div>
+            <div class="badge-label">車検</div>
+          </div>
+        </div>
+        <div class="card-grid">
+          <div class="card-row"><span class="k">登録年月日</span>${v.registeredDate || "-"}</div>
+          <div class="card-row"><span class="k">車検期限</span>${v.shakenDate || "-"}</div>
+          <div class="card-row"><span class="k">保険会社</span>${insuranceHtml}</div>
+          <div class="card-row"><span class="k">最大積載量</span>${fmtNum(v.maxLoad)}</div>
+          <div class="card-row"><span class="k">車両重量</span>${fmtNum(v.vehicleWeight)}</div>
+          <div class="card-row"><span class="k">車両総重量</span>${fmtNum(v.grossWeight)}</div>
+        </div>
+        <div class="vehicle-chips">${permitChipsHtml}</div>
+        <div class="card-actions">
+          <button class="btn-edit" onclick="openEdit('${v.id}')">編集</button>
+          <button class="btn-delete" onclick="deleteVehicle('${v.id}')">削除</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+window.toggleCompanyInfo = function(id) {
+  if (expandedCompanyIds.has(id)) { expandedCompanyIds.delete(id); } else { expandedCompanyIds.add(id); }
+  renderVehicles();
+};
+
+function renderPermitSelectList(selectedIds) {
+  const el = document.getElementById("permitSelectList");
+  if (!allPermits.length) {
+    el.innerHTML = '<div class="permit-select-empty">許可証が登録されていません</div>';
+    return;
+  }
+  el.innerHTML = allPermits.map(p => {
+    const checked = selectedIds && selectedIds.includes(p.id) ? "checked" : "";
+    const label = `${escapeHtml(areaLabel(p))}（${catLabel(p.category)}）`;
+    return `
+      <label class="permit-select-item">
+        <input type="checkbox" class="permit-checkbox" value="${p.id}" ${checked}>
+        <span>${label}</span>
+      </label>
+    `;
+  }).join("");
+}
+
+function populateCompanySelect(selectedName) {
+  const el = document.getElementById("companyName");
+  if (!allCompanies.length) {
+    el.innerHTML = `<option value="">運送会社が未登録です</option>`;
+    return;
+  }
+  el.innerHTML = allCompanies.map(c =>
+    `<option value="${escapeHtml(c.name)}" ${c.name === selectedName ? "selected" : ""}>${escapeHtml(c.name)}</option>`
+  ).join("");
+}
+function populateInsuranceSelect(selectedName) {
+  const el = document.getElementById("insuranceCompany");
+  el.innerHTML = `<option value="">未設定</option>` + allInsurers.map(i =>
+    `<option value="${escapeHtml(i.name)}" ${i.name === selectedName ? "selected" : ""}>${escapeHtml(i.name)}</option>`
+  ).join("");
+}
+
+function renderCompanyList() {
+  const el = document.getElementById("companyList");
+  if (!allCompanies.length) { el.innerHTML = '<div class="permit-select-empty">まだ運送会社が登録されていません</div>'; return; }
+  el.innerHTML = allCompanies.map(c => `
+    <div class="master-item">
+      <div class="master-item-info">
+        <div class="name">${escapeHtml(c.name)}</div>
+        <div class="sub">${escapeHtml(c.phone||"電話番号未登録")} ${c.address ? "・ " + escapeHtml(c.address) : ""}</div>
+      </div>
+      <div class="master-item-actions"><button class="btn-del" onclick="deleteCompany('${c.id}')">削除</button></div>
+    </div>
+  `).join("");
+}
+function renderInsuranceList() {
+  const el = document.getElementById("insuranceList");
+  if (!allInsurers.length) { el.innerHTML = '<div class="permit-select-empty">まだ保険会社が登録されていません</div>'; return; }
+  el.innerHTML = allInsurers.map(i => `
+    <div class="master-item">
+      <div class="master-item-info">
+        <div class="name">${escapeHtml(i.name)}</div>
+        <div class="sub">${escapeHtml(i.phone||"電話番号未登録")}</div>
+      </div>
+      <div class="master-item-actions"><button class="btn-del" onclick="deleteInsurer('${i.id}')">削除</button></div>
+    </div>
+  `).join("");
+}
+
+function subscribeVehicles() {
+  db.collection(VEHICLE_COLLECTION).onSnapshot(snapshot => {
+    allVehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderVehicles();
+    renderPermits();
+  }, err => {
+    document.getElementById("listContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`;
+  });
+}
+function subscribePermits() {
+  db.collection(PERMIT_COLLECTION).onSnapshot(snapshot => {
+    allPermits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderVehicles();
+    renderPermits();
+  }, err => {
+    document.getElementById("permitListContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`;
+  });
+}
+function subscribeCompanies() {
+  db.collection(TRUCK_COMPANY_COLLECTION).orderBy("name").onSnapshot(snapshot => {
+    allCompanies = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderVehicles();
+    renderCompanyList();
+  });
+}
+function subscribeInsurers() {
+  db.collection(INSURANCE_COLLECTION).orderBy("name").onSnapshot(snapshot => {
+    allInsurers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderVehicles();
+    renderInsuranceList();
+  });
+}
+
+document.getElementById("searchInput").addEventListener("input", (e) => {
+  currentSearch = e.target.value;
+  renderVehicles();
+});
+
+const vehicleOverlay = document.getElementById("modalOverlay");
+const vehicleFormEl = document.getElementById("vehicleForm");
+
+document.getElementById("addBtn").addEventListener("click", () => {
+  vehicleFormEl.reset();
+  document.getElementById("editId").value = "";
+  document.getElementById("modalTitle").textContent = "車両を追加";
+  populateCompanySelect("");
+  populateInsuranceSelect("");
+  renderPermitSelectList([]);
+  vehicleOverlay.classList.add("open");
+});
+document.getElementById("cancelBtn").addEventListener("click", () => vehicleOverlay.classList.remove("open"));
+vehicleOverlay.addEventListener("click", (e) => { if (e.target === vehicleOverlay) vehicleOverlay.classList.remove("open"); });
+
+window.openEdit = function(id) {
+  const v = allVehicles.find(x => x.id === id);
+  if (!v) return;
+  document.getElementById("editId").value = id;
+  populateCompanySelect(v.companyName || "");
+  document.getElementById("nickname").value = v.nickname || "";
+  document.getElementById("plateNumber").value = v.plateNumber || "";
+  document.getElementById("registeredDate").value = v.registeredDate || "";
+  document.getElementById("shakenDate").value = v.shakenDate || "";
+  populateInsuranceSelect(v.insuranceCompany || "");
+  document.getElementById("maxLoad").value = v.maxLoad || "";
+  document.getElementById("vehicleWeight").value = v.vehicleWeight || "";
+  document.getElementById("grossWeight").value = v.grossWeight || "";
+  renderPermitSelectList(v.linkedPermitIds || []);
+  document.getElementById("modalTitle").textContent = "車両を編集";
+  vehicleOverlay.classList.add("open");
+};
+window.deleteVehicle = function(id) {
+  if (!confirm("この車両を削除しますか？")) return;
+  db.collection(VEHICLE_COLLECTION).doc(id).delete();
+};
+
+vehicleFormEl.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id = document.getElementById("editId").value;
+  const selectedPermitIds = Array.from(document.querySelectorAll(".permit-checkbox:checked")).map(cb => cb.value);
+  const data = {
+    companyName: document.getElementById("companyName").value,
+    nickname: document.getElementById("nickname").value.trim(),
+    plateNumber: document.getElementById("plateNumber").value.trim(),
+    registeredDate: document.getElementById("registeredDate").value,
+    shakenDate: document.getElementById("shakenDate").value,
+    insuranceCompany: document.getElementById("insuranceCompany").value,
+    maxLoad: document.getElementById("maxLoad").value ? Number(document.getElementById("maxLoad").value) : null,
+    vehicleWeight: document.getElementById("vehicleWeight").value ? Number(document.getElementById("vehicleWeight").value) : null,
+    grossWeight: document.getElementById("grossWeight").value ? Number(document.getElementById("grossWeight").value) : null,
+    linkedPermitIds: selectedPermitIds,
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  };
+  try {
+    if (id) {
+      await db.collection(VEHICLE_COLLECTION).doc(id).update(data);
+    } else {
+      data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      await db.collection(VEHICLE_COLLECTION).add(data);
+    }
+    vehicleOverlay.classList.remove("open");
+  } catch (err) {
+    alert("保存エラー: " + err.message);
+  }
+});
+
+// ================= 許可証管理 =================
+function renderPermits() {
+  const container = document.getElementById("permitListContainer");
+  let filtered = allPermits;
+
+  if (currentPermitFilter !== "all") {
+    filtered = filtered.filter(p => p.category === currentPermitFilter);
+  }
+  if (currentPermitSearch.trim()) {
+    const q = currentPermitSearch.trim().toLowerCase();
     filtered = filtered.filter(p =>
       (p.prefecture||"").toLowerCase().includes(q) ||
       (p.city||"").toLowerCase().includes(q) ||
@@ -428,19 +844,15 @@ function render() {
     );
   }
 
-  // ステータス別カウント（フィルタ前の全件で集計）
   let ok=0, warn=0, expired=0;
   allPermits.forEach(p => {
     const s = getStatus(p.expiryDate);
-    if (s === "ok") ok++;
-    else if (s === "warn") warn++;
-    else expired++;
+    if (s === "ok") ok++; else if (s === "warn") warn++; else expired++;
   });
-  document.getElementById("countOk").textContent = ok;
-  document.getElementById("countWarn").textContent = warn;
-  document.getElementById("countExpired").textContent = expired;
+  document.getElementById("permitCountOk").textContent = ok;
+  document.getElementById("permitCountWarn").textContent = warn;
+  document.getElementById("permitCountExpired").textContent = expired;
 
-  // 期限が近い順にソート
   filtered = [...filtered].sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate));
 
   if (filtered.length === 0) {
@@ -463,18 +875,18 @@ function render() {
           </div>
           <div class="badge status-${status}">${statusLabel(status)}</div>
         </div>
-        <div class="card-row"><span class="k">許可番号</span><span>${escapeHtml(p.permitNumber||"-")}</span></div>
-        <div class="card-row"><span class="k">取得日</span><span>${formatDate(p.issueDate)}</span></div>
-        <div class="card-row"><span class="k">有効期限</span><span>${formatDate(p.expiryDate)}</span></div>
-        <div class="card-row"><span class="k">担当者</span><span>${escapeHtml(p.staff||"-")}</span></div>
-        ${p.office ? `<div class="card-row"><span class="k">更新窓口</span><span>${escapeHtml(p.office)}</span></div>` : ""}
+        <div class="prow"><span class="k">許可番号</span><span>${escapeHtml(p.permitNumber||"-")}</span></div>
+        <div class="prow"><span class="k">取得日</span><span>${formatDate(p.issueDate)}</span></div>
+        <div class="prow"><span class="k">有効期限</span><span>${formatDate(p.expiryDate)}</span></div>
+        <div class="prow"><span class="k">担当者</span><span>${escapeHtml(p.staff||"-")}</span></div>
+        ${p.office ? `<div class="prow"><span class="k">更新窓口</span><span>${escapeHtml(p.office)}</span></div>` : ""}
         ${p.notes ? `<div class="card-notes">${escapeHtml(p.notes)}</div>` : ""}
-        <div class="vehicle-chips">
+        <div class="permit-chips">
           <div class="vehicle-chips-label">対象車両</div>
           ${vehicleChipsHtml}
         </div>
         <div class="card-actions">
-          <button class="btn-edit" onclick="openEdit('${p.id}')">編集</button>
+          <button class="btn-edit" onclick="openEditPermit('${p.id}')">編集</button>
           <button class="btn-delete" onclick="deletePermit('${p.id}')">削除</button>
         </div>
       </div>
@@ -482,66 +894,35 @@ function render() {
   }).join("");
 }
 
-function escapeHtml(str) {
-  if (!str) return "";
-  return str.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-
-function subscribe() {
-  db.collection(COLLECTION).onSnapshot(snapshot => {
-    allPermits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    render();
-  }, err => {
-    document.getElementById("listContainer").innerHTML =
-      `<div class="empty-state">読み込みエラー: ${err.message}</div>`;
-  });
-}
-
-function subscribeVehicles() {
-  db.collection(VEHICLE_COLLECTION).onSnapshot(snapshot => {
-    allVehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    render();
-  });
-}
-
-// フィルタタブ
 document.querySelectorAll(".filter-tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".filter-tab").forEach(t => t.classList.remove("active"));
     tab.classList.add("active");
-    currentFilter = tab.dataset.cat;
-    render();
+    currentPermitFilter = tab.dataset.cat;
+    renderPermits();
   });
 });
-
-document.getElementById("searchInput").addEventListener("input", (e) => {
-  currentSearch = e.target.value;
-  render();
+document.getElementById("permitSearchInput").addEventListener("input", (e) => {
+  currentPermitSearch = e.target.value;
+  renderPermits();
 });
 
-// モーダル制御
-const overlay = document.getElementById("modalOverlay");
-const form = document.getElementById("permitForm");
+const permitOverlay = document.getElementById("permitModalOverlay");
+const permitFormEl = document.getElementById("permitForm");
 
-document.getElementById("addBtn").addEventListener("click", () => {
-  form.reset();
-  document.getElementById("editId").value = "";
-  document.getElementById("modalTitle").textContent = "許可証を追加";
-  overlay.classList.add("open");
+document.getElementById("addPermitBtn").addEventListener("click", () => {
+  permitFormEl.reset();
+  document.getElementById("permitEditId").value = "";
+  document.getElementById("permitModalTitle").textContent = "許可証を追加";
+  permitOverlay.classList.add("open");
 });
+document.getElementById("permitCancelBtn").addEventListener("click", () => permitOverlay.classList.remove("open"));
+permitOverlay.addEventListener("click", (e) => { if (e.target === permitOverlay) permitOverlay.classList.remove("open"); });
 
-document.getElementById("cancelBtn").addEventListener("click", () => {
-  overlay.classList.remove("open");
-});
-
-overlay.addEventListener("click", (e) => {
-  if (e.target === overlay) overlay.classList.remove("open");
-});
-
-window.openEdit = function(id) {
+window.openEditPermit = function(id) {
   const p = allPermits.find(x => x.id === id);
   if (!p) return;
-  document.getElementById("editId").value = id;
+  document.getElementById("permitEditId").value = id;
   document.querySelector(`input[name="category"][value="${p.category}"]`).checked = true;
   document.getElementById("prefecture").value = p.prefecture || "";
   document.getElementById("city").value = p.city || "";
@@ -551,18 +932,17 @@ window.openEdit = function(id) {
   document.getElementById("office").value = p.office || "";
   document.getElementById("staff").value = p.staff || "";
   document.getElementById("notes").value = p.notes || "";
-  document.getElementById("modalTitle").textContent = "許可証を編集";
-  overlay.classList.add("open");
+  document.getElementById("permitModalTitle").textContent = "許可証を編集";
+  permitOverlay.classList.add("open");
 };
-
 window.deletePermit = function(id) {
   if (!confirm("この許可証を削除しますか？")) return;
-  db.collection(COLLECTION).doc(id).delete();
+  db.collection(PERMIT_COLLECTION).doc(id).delete();
 };
 
-form.addEventListener("submit", async (e) => {
+permitFormEl.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const id = document.getElementById("editId").value;
+  const id = document.getElementById("permitEditId").value;
   const data = {
     category: document.querySelector('input[name="category"]:checked').value,
     prefecture: document.getElementById("prefecture").value.trim(),
@@ -575,32 +955,74 @@ form.addEventListener("submit", async (e) => {
     notes: document.getElementById("notes").value.trim(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
-
   try {
     if (id) {
-      // 編集前の期限を履歴に残す
       const before = allPermits.find(x => x.id === id);
       if (before && before.expiryDate !== data.expiryDate) {
-        await db.collection(COLLECTION).doc(id).collection("history").add({
+        await db.collection(PERMIT_COLLECTION).doc(id).collection("history").add({
           previousExpiryDate: before.expiryDate,
           changedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       }
-      await db.collection(COLLECTION).doc(id).update(data);
+      await db.collection(PERMIT_COLLECTION).doc(id).update(data);
     } else {
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      await db.collection(COLLECTION).add(data);
+      await db.collection(PERMIT_COLLECTION).add(data);
     }
-    overlay.classList.remove("open");
+    permitOverlay.classList.remove("open");
   } catch (err) {
     alert("保存エラー: " + err.message);
   }
 });
 
-subscribe();
-subscribeVehicles();
+// ---- 設定モーダル ----
+const settingsOverlay = document.getElementById("settingsOverlay");
+document.getElementById("settingsBtn").addEventListener("click", () => settingsOverlay.classList.add("open"));
+document.getElementById("settingsCloseBtn").addEventListener("click", () => settingsOverlay.classList.remove("open"));
+settingsOverlay.addEventListener("click", (e) => { if (e.target === settingsOverlay) settingsOverlay.classList.remove("open"); });
 
-// Service Worker登録（用意でき次第）
+document.querySelectorAll(".settings-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".settings-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll(".settings-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("panel-" + tab.dataset.tab).classList.add("active");
+  });
+});
+
+document.getElementById("addCompanyBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newCompanyName").value.trim();
+  const phone = document.getElementById("newCompanyPhone").value.trim();
+  const address = document.getElementById("newCompanyAddress").value.trim();
+  if (!name) { alert("社名を入力してください"); return; }
+  await db.collection(TRUCK_COMPANY_COLLECTION).add({ name, phone, address, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  document.getElementById("newCompanyName").value = "";
+  document.getElementById("newCompanyPhone").value = "";
+  document.getElementById("newCompanyAddress").value = "";
+});
+window.deleteCompany = function(id) {
+  if (!confirm("この運送会社を削除しますか？")) return;
+  db.collection(TRUCK_COMPANY_COLLECTION).doc(id).delete();
+};
+
+document.getElementById("addInsuranceBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newInsuranceName").value.trim();
+  const phone = document.getElementById("newInsurancePhone").value.trim();
+  if (!name) { alert("保険会社名を入力してください"); return; }
+  await db.collection(INSURANCE_COLLECTION).add({ name, phone, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  document.getElementById("newInsuranceName").value = "";
+  document.getElementById("newInsurancePhone").value = "";
+});
+window.deleteInsurer = function(id) {
+  if (!confirm("この保険会社を削除しますか？")) return;
+  db.collection(INSURANCE_COLLECTION).doc(id).delete();
+};
+
+subscribeVehicles();
+subscribePermits();
+subscribeCompanies();
+subscribeInsurers();
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
