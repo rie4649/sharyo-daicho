@@ -16,29 +16,25 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
-    background: #f2f4f7;
-    color: #1a2433;
-    padding-bottom: 100px;
+    background: #f2f4f7; color: #1a2433; padding-bottom: 100px;
   }
   header {
-    background: linear-gradient(135deg, #1e3a5f, #14283f);
-    color: #fff;
-    padding: 20px 16px 0;
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    background: linear-gradient(135deg, #1e3a5f, #14283f); color: #fff; padding: 20px 16px 0;
+    position: sticky; top: 0; z-index: 20; box-shadow: 0 2px 8px rgba(0,0,0,0.15);
   }
   .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
   header h1 { font-size: 20px; font-weight: 700; }
-
-  .main-tabs { display: flex; gap: 8px; padding-bottom: 12px; }
+  .install-btn {
+    background: rgba(255,255,255,0.15); border: none; color: #fff; font-size: 12px; font-weight: 700;
+    padding: 8px 12px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  }
+  .main-tabs { display: flex; gap: 6px; padding-bottom: 12px; overflow-x: auto; }
   .main-tab {
-    flex: 1; text-align: center; padding: 10px; border-radius: 10px 10px 0 0;
-    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); font-size: 13.5px; font-weight: 700; cursor: pointer;
+    flex: 1; text-align: center; padding: 10px 6px; border-radius: 10px 10px 0 0;
+    background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.7); font-size: 12px; font-weight: 700;
+    cursor: pointer; white-space: nowrap;
   }
   .main-tab.active { background: #f2f4f7; color: #1e3a5f; }
-
   .section { display: none; }
   .section.active { display: block; }
 
@@ -47,18 +43,15 @@
   .summary-chip .num { font-size: 18px; font-weight: 800; display: block; }
   .summary-chip .label { font-size: 11px; color: #7a8996; }
   .summary-chip.total .num { color: #1e3a5f; }
-  .summary-chip.ok .num { color: #15803d; }
   .summary-chip.warn .num { color: #a16207; }
-  .summary-chip.expired .num { color: #b91c1c; }
 
-  .status-legend {
-    display: flex; gap: 10px; padding: 8px 16px 0; font-size: 11px; color: #8b95a3; flex-wrap: wrap;
+  .toolbar-row { display: flex; gap: 8px; margin: 12px 16px 0; align-items: center; }
+  .toolbar-row .search-box { margin: 0; flex: 1; }
+  .search-box input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #d4d9e0; font-size: 14px; }
+  .jpeg-btn {
+    flex-shrink: 0; background: #fff; border: 1px solid #d4d9e0; border-radius: 10px;
+    padding: 0 14px; height: 40px; font-size: 13px; font-weight: 600; color: #1e3a5f; cursor: pointer;
   }
-  .status-legend span { display: flex; align-items: center; gap: 4px; }
-  .status-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-  .dot.ok { background: #22c55e; }
-  .dot.warn { background: #eab308; }
-  .dot.expired { background: #ef4444; }
 
   .company-count-bar { display: flex; gap: 6px; overflow-x: auto; padding: 10px 16px 0; }
   .company-count-chip {
@@ -66,9 +59,6 @@
     font-size: 12px; white-space: nowrap; color: #56626e; box-shadow: 0 1px 3px rgba(0,0,0,0.04);
   }
   .company-count-chip b { color: #1e3a5f; }
-
-  .search-box { margin: 12px 16px 0; }
-  .search-box input { width: 100%; padding: 10px 12px; border-radius: 10px; border: 1px solid #d4d9e0; font-size: 14px; }
 
   .list { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
   .card {
@@ -78,7 +68,6 @@
   .card.status-ok { border-left-color: #22c55e; }
   .card.status-warn { border-left-color: #eab308; }
   .card.status-expired { border-left-color: #ef4444; }
-
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
   .card-title { font-size: 16px; font-weight: 700; }
   .card-sub { font-size: 12.5px; color: #6b7686; margin-top: 2px; }
@@ -89,48 +78,38 @@
   }
   .company-info-panel a { color: #1e3a5f; text-decoration: none; font-weight: 600; }
   .company-info-panel .empty { color: #9aa3af; }
-
   .badge { font-size: 12px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
   .badge.status-ok { background: #dcfce7; color: #15803d; }
   .badge.status-warn { background: #fef9c3; color: #a16207; }
   .badge.status-expired { background: #fee2e2; color: #b91c1c; }
-  .badge-label { font-size: 10.5px; color: #8b95a3; text-align: right; margin-top: 2px; }
-
   .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 12px; margin-top: 8px; }
   .card-row { font-size: 13px; color: #445; }
   .card-row .k { color: #8b95a3; font-size: 11.5px; display: block; }
-  .card-row a { color: #1e3a5f; text-decoration: none; font-weight: 600; }
-
   .prow { font-size: 13px; color: #445c58; margin-top: 4px; display: flex; justify-content: space-between; }
   .prow .k { color: #7a8c89; }
   .card-notes { margin-top: 8px; font-size: 12.5px; color: #5a6b68; background: #f4f6f5; border-radius: 8px; padding: 6px 8px; }
-
   .vehicle-chips-section { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e0e6e4; }
   .vehicle-chips-label { font-size: 11.5px; font-weight: 700; color: #445c58; margin-bottom: 6px; }
-  .vehicle-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-  .permit-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .vehicle-chips, .permit-chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .permit-chip, .vehicle-chip {
     font-size: 11.5px; padding: 4px 9px; border-radius: 999px; background: #eef1f6; color: #334; border: 1px solid #dde2ea;
   }
   .permit-chip.status-ok { border-color: #86efac; color: #15803d; }
   .permit-chip.status-warn { border-color: #fde047; color: #a16207; }
   .permit-chip.status-expired { border-color: #fca5a5; color: #b91c1c; }
+  .permit-chip.status-none { color: #9aa3af; border-style: dashed; }
   .permit-chip.none, .vehicle-chip.none { color: #9aa3af; }
-
   .card-actions { display: flex; gap: 8px; margin-top: 10px; }
   .card-actions button { flex: 1; padding: 7px; border-radius: 8px; border: none; font-size: 13px; cursor: pointer; }
   .btn-edit { background: #e8edf5; color: #1e3a5f; }
   .btn-delete { background: #fee2e2; color: #b91c1c; }
-
   .empty-state { text-align: center; color: #9aa3af; padding: 60px 20px; font-size: 14px; }
-
   .fab {
     position: fixed; right: 20px; bottom: 24px; width: 56px; height: 56px; border-radius: 50%;
     background: #1e3a5f; color: #fff; font-size: 28px; border: none;
     box-shadow: 0 4px 12px rgba(0,0,0,0.25); cursor: pointer; z-index: 30;
   }
   .fab.permit-fab { background: #0f766e; }
-
   .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 50; align-items: flex-end; }
   .modal-overlay.open { display: flex; }
   .modal { background: #fff; width: 100%; max-height: 92vh; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 20px 18px 30px; }
@@ -143,49 +122,58 @@
   .field textarea { resize: vertical; min-height: 60px; }
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
-
-  .permit-select-list { border: 1px solid #d4d9e0; border-radius: 8px; max-height: 180px; overflow-y: auto; }
-  .permit-select-item { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-bottom: 1px solid #eef1f6; font-size: 13px; }
-  .permit-select-item:last-child { border-bottom: none; }
-  .permit-select-item input { width: auto; }
-  .permit-select-empty { padding: 14px; text-align: center; color: #9aa3af; font-size: 13px; }
-
+  .field-hint { margin-top: 4px; color: #8b95a3; font-size: 12px; }
   .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
   .modal-actions button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; }
   .btn-cancel { background: #eee; color: #555; }
   .btn-save { background: #1e3a5f; color: #fff; }
   .btn-save.permit-save { background: #0f766e; }
-
+  .btn-delete-inline { background: #fee2e2; color: #b91c1c; }
   .loading { text-align: center; padding: 40px; color: #9aa3af; }
 
   .area-checkbox-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 6px 10px;
-    margin-top: 10px;
-    padding-top: 10px;
-    border-top: 1px dashed #e0e6e4;
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 10px;
+    margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e0e6e4;
   }
   .area-checkbox-item {
-    display: flex; align-items: center; gap: 6px; font-size: 13px;
-    padding: 6px 8px; border-radius: 8px; background: #f2f4f7;
+    display: flex; align-items: center; gap: 6px; font-size: 13px; padding: 6px 8px; border-radius: 8px; background: #f2f4f7;
   }
   .area-checkbox-item.checked { background: #e6f4f2; color: #0f766e; font-weight: 700; }
   .area-checkbox-item input { width: auto; }
   .area-group-label { grid-column: 1 / -1; font-size: 11px; color: #8b95a3; font-weight: 700; margin-top: 4px; }
 
-  .install-btn {
-    background: rgba(255,255,255,0.15);
-    border: none; color: #fff; font-size: 12px; font-weight: 700;
-    padding: 8px 12px; border-radius: 10px; cursor: pointer; white-space: nowrap;
+  /* マスター管理 共通スタイル */
+  .master-sub-tabs { display: flex; gap: 8px; padding: 14px 16px 0; }
+  .master-sub-tab {
+    flex: 1; text-align: center; padding: 9px; border-radius: 8px; background: #fff; border: 1px solid #d4d9e0;
+    color: #556; font-size: 13px; font-weight: 700; cursor: pointer;
   }
-  .toolbar-row { display: flex; gap: 8px; margin: 12px 16px 0; }
-  .toolbar-row .search-box { margin: 0; flex: 1; }
-  .jpeg-btn {
-    flex-shrink: 0; background: #fff; border: 1px solid #d4d9e0; border-radius: 10px;
-    padding: 0 14px; font-size: 13px; font-weight: 600; color: #1e3a5f; cursor: pointer;
+  .master-sub-tab.active { background: #1e3a5f; color: #fff; border-color: #1e3a5f; }
+  .master-panel { display: none; padding: 0 16px; }
+  .master-panel.active { display: block; }
+  .area-type-tabs { display: flex; gap: 8px; margin: 14px 0 10px; }
+  .area-type-tab {
+    flex: 1; text-align: center; padding: 8px; border-radius: 8px; background: #fff; border: 1px solid #d4d9e0;
+    color: #556; font-size: 12.5px; font-weight: 700; cursor: pointer;
   }
-  .btn-delete-inline { background: #fee2e2; color: #b91c1c; }
+  .area-type-tab.active { background: #0f766e; color: #fff; border-color: #0f766e; }
+  .area-type-panel { display: none; }
+  .area-type-panel.active { display: block; }
+
+  .master-item {
+    display: flex; justify-content: space-between; align-items: center; background: #fff;
+    border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .master-item-info { font-size: 13.5px; }
+  .master-item-info .name { font-weight: 700; }
+  .master-item-info .sub { font-size: 11.5px; color: #8b95a3; margin-top: 2px; }
+  .master-item-actions button { border: none; border-radius: 6px; padding: 5px 9px; font-size: 12px; cursor: pointer; background: #fee2e2; color: #b91c1c; }
+  .add-master-form { background: #fff; border: 1px dashed #d4d9e0; border-radius: 10px; padding: 12px; margin: 12px 0 20px; }
+  .add-master-form .field-row { margin-bottom: 8px; }
+  .add-master-form button.submit-btn {
+    width: 100%; padding: 10px; border: none; border-radius: 8px; background: #1e3a5f; color: #fff;
+    font-weight: 700; font-size: 13.5px; cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -199,6 +187,7 @@
     <div class="main-tab active" data-section="vehicle">🚛 車両台帳</div>
     <div class="main-tab" data-section="permit">📋 許可証管理</div>
     <div class="main-tab" data-section="areaGrid">🗺️ 許可車両管理</div>
+    <div class="main-tab" data-section="master">⚙️ マスター管理</div>
   </div>
 </header>
 
@@ -209,18 +198,11 @@
     <div class="summary-chip warn"><span class="num" id="countWarn">-</span><span class="label">要更新（90日以内・期限切れ）</span></div>
   </div>
   <div class="company-count-bar" id="companyCountBar"></div>
-
   <div class="toolbar-row">
-    <div class="search-box">
-      <input type="text" id="searchInput" placeholder="メーカー・愛称・車番で検索">
-    </div>
+    <div class="search-box"><input type="text" id="searchInput" placeholder="メーカー・愛称・車番で検索"></div>
     <button class="jpeg-btn" id="jpegBtnVehicle">🖨️ JPEG</button>
   </div>
-
-  <div class="list" id="listContainer">
-    <div class="loading">読み込み中...</div>
-  </div>
-
+  <div class="list" id="listContainer"><div class="loading">読み込み中...</div></div>
   <button class="fab" id="addBtn">＋</button>
 </div>
 
@@ -229,34 +211,73 @@
   <div class="summary-bar">
     <div class="summary-chip warn"><span class="num" id="permitCountWarn">-</span><span class="label">要更新（90日以内・期限切れ）</span></div>
   </div>
-
   <div class="toolbar-row">
-    <div class="search-box">
-      <input type="text" id="permitSearchInput" placeholder="都道府県・市区町村・許可番号で検索">
-    </div>
+    <div class="search-box"><input type="text" id="permitSearchInput" placeholder="エリア・許可番号で検索"></div>
     <button class="jpeg-btn" id="jpegBtnPermit">🖨️ JPEG</button>
   </div>
-
-  <div class="list" id="permitListContainer">
-    <div class="loading">読み込み中...</div>
-  </div>
-
+  <div class="list" id="permitListContainer"><div class="loading">読み込み中...</div></div>
   <button class="fab permit-fab" id="addPermitBtn">＋</button>
 </div>
 
 <!-- ================= 許可車両管理セクション ================= -->
 <div class="section" id="section-areaGrid">
   <div class="company-count-bar" id="areaCountBar"></div>
-
   <div class="toolbar-row">
-    <div class="search-box">
-      <input type="text" id="areaGridSearchInput" placeholder="愛称・車番で検索">
-    </div>
+    <div class="search-box"><input type="text" id="areaGridSearchInput" placeholder="愛称・車番で検索"></div>
     <button class="jpeg-btn" id="jpegBtnAreaGrid">🖨️ JPEG</button>
   </div>
+  <div class="list" id="areaGridContainer"><div class="loading">読み込み中...</div></div>
+</div>
 
-  <div class="list" id="areaGridContainer">
-    <div class="loading">読み込み中...</div>
+<!-- ================= マスター管理セクション ================= -->
+<div class="section" id="section-master">
+  <div class="master-sub-tabs">
+    <div class="master-sub-tab active" data-master="maker">🏭 メーカー</div>
+    <div class="master-sub-tab" data-master="insurance">🛡️ 保険会社</div>
+    <div class="master-sub-tab" data-master="area">🗺️ エリア</div>
+  </div>
+
+  <!-- メーカー -->
+  <div class="master-panel active" id="masterPanel-maker">
+    <div id="makerList" style="margin-top:14px;"></div>
+    <div class="add-master-form">
+      <div class="field-row"><div class="field"><label>メーカー名</label><input type="text" id="newMakerName" placeholder="例：いすゞ"></div></div>
+      <div class="field-row"><div class="field"><label>電話番号（任意）</label><input type="tel" id="newMakerPhone" placeholder="0268-XX-XXXX"></div></div>
+      <div class="field-row"><div class="field"><label>住所（任意）</label><input type="text" id="newMakerAddress" placeholder="営業所・販売店の住所など"></div></div>
+      <button type="button" class="submit-btn" id="addMakerBtn">追加</button>
+    </div>
+  </div>
+
+  <!-- 保険会社 -->
+  <div class="master-panel" id="masterPanel-insurance">
+    <div id="insurerList" style="margin-top:14px;"></div>
+    <div class="add-master-form">
+      <div class="field-row"><div class="field"><label>保険会社名</label><input type="text" id="newInsurerName" placeholder="例：東京海上日動"></div></div>
+      <div class="field-row"><div class="field"><label>電話番号（任意）</label><input type="tel" id="newInsurerPhone" placeholder="0120-XXX-XXX"></div></div>
+      <button type="button" class="submit-btn" id="addInsurerBtn">追加</button>
+    </div>
+  </div>
+
+  <!-- エリア -->
+  <div class="master-panel" id="masterPanel-area">
+    <div class="area-type-tabs">
+      <div class="area-type-tab active" data-type="prefecture">都道府県</div>
+      <div class="area-type-tab" data-type="city">市区町村</div>
+    </div>
+    <div class="area-type-panel active" id="areaPanel-prefecture">
+      <div id="prefectureAreaList"></div>
+      <div class="add-master-form">
+        <div class="field-row"><div class="field"><label>都道府県名</label><input type="text" id="newPrefectureArea" placeholder="例：新潟県"></div></div>
+        <button type="button" class="submit-btn" id="addPrefectureAreaBtn">追加</button>
+      </div>
+    </div>
+    <div class="area-type-panel" id="areaPanel-city">
+      <div id="cityAreaList"></div>
+      <div class="add-master-form">
+        <div class="field-row"><div class="field"><label>市区町村名</label><input type="text" id="newCityArea" placeholder="例：千曲市"></div></div>
+        <button type="button" class="submit-btn" id="addCityAreaBtn">追加</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -268,11 +289,8 @@
       <input type="hidden" id="editId">
       <div class="field">
         <label>メーカー</label>
-        <input type="text" id="companyName" placeholder="メーカー" required>
-      </div>
-      <div class="field-row">
-        <div class="field"><label>電話番号</label><input type="tel" id="companyPhone" placeholder="0268-XX-XXXX"></div>
-        <div class="field"><label>住所</label><input type="text" id="companyAddress" placeholder="住所"></div>
+        <select id="companyName" required></select>
+        <div class="field-hint">一覧にない場合は⚙️マスター管理タブから追加してください</div>
       </div>
       <div class="field-row">
         <div class="field"><label>愛称</label><input type="text" id="nickname" placeholder="愛称"></div>
@@ -282,9 +300,10 @@
         <div class="field"><label>登録年月日</label><input type="date" id="registeredDate"></div>
         <div class="field"><label>車検有効期限</label><input type="date" id="shakenDate"></div>
       </div>
-      <div class="field-row">
-        <div class="field"><label>保険会社</label><input type="text" id="insuranceCompany" placeholder="保険会社名"></div>
-        <div class="field"><label>電話番号</label><input type="tel" id="insurancePhone" placeholder="0120-XXX-XXX"></div>
+      <div class="field">
+        <label>保険会社</label>
+        <select id="insuranceCompany"><option value="">未設定</option></select>
+        <div class="field-hint">一覧にない場合は⚙️マスター管理タブから追加してください</div>
       </div>
       <div class="field">
         <label>車体の形状</label>
@@ -305,12 +324,7 @@
         <div class="field"><label>車両重量(kg)</label><input type="number" id="vehicleWeight" placeholder="kg"></div>
         <div class="field"><label>車両総重量(kg)</label><input type="number" id="grossWeight" placeholder="kg"></div>
       </div>
-      <div class="field">
-        <label>紐づく許可証</label>
-        <div class="permit-select-list" id="permitSelectList">
-          <div class="permit-select-empty">読み込み中...</div>
-        </div>
-      </div>
+      <div class="field-hint" style="margin-bottom:12px;">エリアごとの許可状況は「🗺️ 許可車両管理」タブで設定します</div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" id="cancelBtn">キャンセル</button>
         <button type="button" class="btn-cancel btn-delete-inline" id="deleteBtnInModal" style="display:none;">削除</button>
@@ -327,12 +341,9 @@
     <form id="permitForm">
       <input type="hidden" id="permitEditId">
       <div class="field">
-        <label>都道府県</label>
-        <input type="text" id="prefecture" placeholder="例：長野県" required>
-      </div>
-      <div class="field">
-        <label>市区町村（任意）</label>
-        <input type="text" id="city" placeholder="例：上田市">
+        <label>エリア</label>
+        <select id="permitArea" required><option value="">選択してください</option></select>
+        <div class="field-hint">一覧にない場合は⚙️マスター管理タブのエリアから追加してください</div>
       </div>
       <div class="field">
         <label>許可番号</label>
@@ -369,45 +380,54 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const VEHICLE_COLLECTION = "vehicleLedger";
 const PERMIT_COLLECTION = "kyokaShoumei";
+const AREA_COLLECTION = "managedAreas";
+const MAKER_COLLECTION = "vehicleMakers";
+const INSURER_COLLECTION = "insuranceCompanies";
 
-let allVehicles = [];
-let allPermits = [];
-let currentSearch = "";
-let currentPermitSearch = "";
+const DEFAULT_AREAS = [
+  { name: "長野県", type: "prefecture" }, { name: "群馬県", type: "prefecture" }, { name: "埼玉県", type: "prefecture" },
+  { name: "新潟県", type: "prefecture" }, { name: "山梨県", type: "prefecture" },
+  { name: "上田市", type: "city" }, { name: "東御市", type: "city" }, { name: "坂城町", type: "city" },
+  { name: "千曲市", type: "city" }, { name: "長野市", type: "city" }, { name: "中野市", type: "city" }
+];
+
+let allVehicles = [], allPermits = [], allAreas = [], allMakers = [], allInsurers = [];
+let currentSearch = "", currentPermitSearch = "", currentAreaGridSearch = "";
 let expandedCompanyIds = new Set();
+let areaSeeded = false;
 
 function getStatus(dateStr) {
   if (!dateStr) return null;
-  const today = new Date();
-  today.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
   const d = new Date(dateStr);
   const diffDays = Math.floor((d - today) / (1000*60*60*24));
   if (diffDays < 0) return "expired";
   if (diffDays <= 90) return "warn";
   return "ok";
 }
-function statusLabel(status) {
-  if (status === "expired") return "期限切れ";
-  if (status === "warn") return "90日以内";
-  if (status === "ok") return "有効";
-  return "-";
-}
 function escapeHtml(str) {
   if (!str && str !== 0) return "";
   return String(str).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
-function fmtNum(n) {
-  if (n === undefined || n === null || n === "") return "-";
-  return Number(n).toLocaleString() + " kg";
-}
+function fmtNum(n) { if (n === undefined || n === null || n === "") return "-"; return Number(n).toLocaleString() + " kg"; }
 function formatDate(d) { return d || "-"; }
-function areaLabel(p) { return p.city ? `${p.prefecture} ${p.city}` : p.prefecture; }
 
-const AREA_LIST = ["長野県","群馬県","埼玉県","新潟県","山梨県","上田市","東御市","坂城町","千曲市","長野市","中野市"];
-const AREA_PREFECTURES = ["長野県","群馬県","埼玉県","新潟県","山梨県"];
-const AREA_CITIES = ["上田市","東御市","坂城町","千曲市","長野市","中野市"];
-let currentAreaGridSearch = "";
+// ---- 共通: マスターアイテムの一覧描画 ----
+function renderMasterItems(containerId, items, subTextFn, onDeleteFnName, emptyMsg) {
+  const el = document.getElementById(containerId);
+  if (!items.length) { el.innerHTML = `<div class="empty-state" style="padding:14px;">${emptyMsg}</div>`; return; }
+  el.innerHTML = items.map(item => `
+    <div class="master-item">
+      <div class="master-item-info">
+        <div class="name">${escapeHtml(item.name)}</div>
+        <div class="sub">${subTextFn(item)}</div>
+      </div>
+      <div class="master-item-actions"><button onclick="${onDeleteFnName}('${item.id}')">削除</button></div>
+    </div>
+  `).join("");
+}
 
+// ---- メインタブ ----
 document.querySelectorAll(".main-tab").forEach(tab => {
   tab.addEventListener("click", () => {
     document.querySelectorAll(".main-tab").forEach(t => t.classList.remove("active"));
@@ -417,11 +437,28 @@ document.querySelectorAll(".main-tab").forEach(tab => {
   });
 });
 
+// ---- マスター管理 サブタブ ----
+document.querySelectorAll(".master-sub-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".master-sub-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll(".master-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("masterPanel-" + tab.dataset.master).classList.add("active");
+  });
+});
+document.querySelectorAll(".area-type-tab").forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll(".area-type-tab").forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelectorAll(".area-type-panel").forEach(p => p.classList.remove("active"));
+    document.getElementById("areaPanel-" + tab.dataset.type).classList.add("active");
+  });
+});
+
 // ================= 車両台帳 =================
 function renderVehicles() {
   const container = document.getElementById("listContainer");
   let filtered = allVehicles;
-
   if (currentSearch.trim()) {
     const q = currentSearch.trim().toLowerCase();
     filtered = filtered.filter(v =>
@@ -430,25 +467,16 @@ function renderVehicles() {
       (v.plateNumber||"").toLowerCase().includes(q)
     );
   }
-
-  let warn=0;
-  allVehicles.forEach(v => {
-    const s = getStatus(v.shakenDate);
-    if (s === "warn" || s === "expired") warn++;
-  });
+  let warn = 0;
+  allVehicles.forEach(v => { const s = getStatus(v.shakenDate); if (s === "warn" || s === "expired") warn++; });
   document.getElementById("countTotal").textContent = allVehicles.length;
   document.getElementById("countWarn").textContent = warn;
 
   const companyCounts = {};
-  allVehicles.forEach(v => {
-    const name = v.companyName || "未設定";
-    companyCounts[name] = (companyCounts[name] || 0) + 1;
-  });
+  allVehicles.forEach(v => { const name = v.companyName || "未設定"; companyCounts[name] = (companyCounts[name]||0)+1; });
   const companyCountBar = document.getElementById("companyCountBar");
-  const companyNames = Object.keys(companyCounts).sort((a,b) => companyCounts[b] - companyCounts[a]);
-  companyCountBar.innerHTML = companyNames.map(name =>
-    `<div class="company-count-chip">${escapeHtml(name)} <b>${companyCounts[name]}台</b></div>`
-  ).join("");
+  const companyNames = Object.keys(companyCounts).sort((a,b) => companyCounts[b]-companyCounts[a]);
+  companyCountBar.innerHTML = companyNames.map(name => `<div class="company-count-chip">${escapeHtml(name)} <b>${companyCounts[name]}台</b></div>`).join("");
 
   filtered = [...filtered].sort((a,b) => {
     const da = a.shakenDate ? new Date(a.shakenDate) : new Date("9999-12-31");
@@ -456,42 +484,38 @@ function renderVehicles() {
     return da - db_;
   });
 
-  if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty-state">該当する車両がありません</div>';
-    return;
-  }
+  if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する車両がありません</div>'; return; }
 
   container.innerHTML = filtered.map(v => {
     const shakenStatus = getStatus(v.shakenDate) || "ok";
-    const linkedIds = v.linkedPermitIds || [];
-    const linkedPermits = linkedIds.map(id => allPermits.find(p => p.id === id)).filter(Boolean);
-
-    const permitChipsHtml = linkedPermits.length
-      ? linkedPermits.map(p => {
-          const ps = getStatus(p.expiryDate) || "ok";
-          return `<span class="permit-chip status-${ps}">${escapeHtml(areaLabel(p))} ・ ${statusLabel(ps)}</span>`;
+    const permittedAreas = v.permittedAreas || [];
+    const areaChipsHtml = permittedAreas.length
+      ? permittedAreas.map(area => {
+          const permit = allPermits.find(p => p.area === area);
+          if (!permit) return `<span class="permit-chip status-none">${escapeHtml(area)}・許可証未登録</span>`;
+          const ps = getStatus(permit.expiryDate) || "ok";
+          const label = ps === "ok" ? "有効" : "要更新";
+          return `<span class="permit-chip status-${ps}">${escapeHtml(area)}・${label}</span>`;
         }).join("")
-      : `<span class="permit-chip none">紐づく許可証なし</span>`;
+      : `<span class="permit-chip none">許可エリアなし</span>`;
 
+    const maker = allMakers.find(m => m.name === v.companyName);
     const isExpanded = expandedCompanyIds.has(v.id);
     let companyInfoPanel = "";
     if (isExpanded) {
-      if (v.companyPhone || v.companyAddress) {
-        companyInfoPanel = `
-          <div class="company-info-panel">
-            ${v.companyPhone ? `<a href="tel:${escapeHtml(v.companyPhone)}">📞 ${escapeHtml(v.companyPhone)}</a>` : ""}
-            ${v.companyAddress ? `<a href="https://maps.google.com/?q=${encodeURIComponent(v.companyAddress)}" target="_blank">📍 ${escapeHtml(v.companyAddress)}</a>` : ""}
-          </div>
-        `;
+      if (maker && (maker.phone || maker.address)) {
+        companyInfoPanel = `<div class="company-info-panel">
+          ${maker.phone ? `<a href="tel:${escapeHtml(maker.phone)}">📞 ${escapeHtml(maker.phone)}</a>` : ""}
+          ${maker.address ? `<a href="https://maps.google.com/?q=${encodeURIComponent(maker.address)}" target="_blank">📍 ${escapeHtml(maker.address)}</a>` : ""}
+        </div>`;
       } else {
-        companyInfoPanel = `<div class="company-info-panel"><span class="empty">電話番号・住所が未登録です</span></div>`;
+        companyInfoPanel = `<div class="company-info-panel"><span class="empty">電話番号・住所が未登録です（マスター管理から追加できます）</span></div>`;
       }
     }
 
+    const insurer = allInsurers.find(i => i.name === v.insuranceCompany);
     const insuranceHtml = v.insuranceCompany
-      ? (v.insurancePhone
-          ? `<a href="tel:${escapeHtml(v.insurancePhone)}">${escapeHtml(v.insuranceCompany)} 📞</a>`
-          : escapeHtml(v.insuranceCompany))
+      ? (insurer && insurer.phone ? `<a href="tel:${escapeHtml(insurer.phone)}">${escapeHtml(v.insuranceCompany)} 📞</a>` : escapeHtml(v.insuranceCompany))
       : "-";
 
     return `
@@ -505,9 +529,7 @@ function renderVehicles() {
             </div>
             ${companyInfoPanel}
           </div>
-          <div>
-            ${shakenStatus !== "ok" ? `<div class="badge status-${shakenStatus}">要更新</div>` : ""}
-          </div>
+          <div>${shakenStatus !== "ok" ? `<div class="badge status-${shakenStatus}">要更新</div>` : ""}</div>
         </div>
         <div class="card-grid">
           <div class="card-row"><span class="k">登録年月日</span>${v.registeredDate || "-"}</div>
@@ -519,8 +541,8 @@ function renderVehicles() {
           <div class="card-row"><span class="k">車両総重量</span>${fmtNum(v.grossWeight)}</div>
         </div>
         <div class="vehicle-chips-section">
-          <div class="vehicle-chips-label">紐づく許可証</div>
-          <div class="vehicle-chips">${permitChipsHtml}</div>
+          <div class="vehicle-chips-label">許可エリア</div>
+          <div class="vehicle-chips">${areaChipsHtml}</div>
         </div>
         <div class="card-actions">
           <button class="btn-edit" onclick="openEdit('${v.id}')">編集</button>
@@ -530,53 +552,52 @@ function renderVehicles() {
     `;
   }).join("");
 }
-
 window.toggleCompanyInfo = function(id) {
-  if (expandedCompanyIds.has(id)) { expandedCompanyIds.delete(id); } else { expandedCompanyIds.add(id); }
+  if (expandedCompanyIds.has(id)) expandedCompanyIds.delete(id); else expandedCompanyIds.add(id);
   renderVehicles();
 };
-
-function renderPermitSelectList(selectedIds) {
-  const el = document.getElementById("permitSelectList");
-  if (!allPermits.length) {
-    el.innerHTML = '<div class="permit-select-empty">許可証が登録されていません</div>';
-    return;
-  }
-  el.innerHTML = allPermits.map(p => {
-    const checked = selectedIds && selectedIds.includes(p.id) ? "checked" : "";
-    return `
-      <label class="permit-select-item">
-        <input type="checkbox" class="permit-checkbox" value="${p.id}" ${checked}>
-        <span>${escapeHtml(areaLabel(p))}</span>
-      </label>
-    `;
-  }).join("");
-}
 
 function subscribeVehicles() {
   db.collection(VEHICLE_COLLECTION).onSnapshot(snapshot => {
     allVehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderVehicles();
-    renderPermits();
-    renderAreaGrid();
-  }, err => {
-    document.getElementById("listContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`;
-  });
+    renderVehicles(); renderPermits(); renderAreaGrid();
+  }, err => { document.getElementById("listContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`; });
 }
 function subscribePermits() {
   db.collection(PERMIT_COLLECTION).onSnapshot(snapshot => {
     allPermits = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderVehicles();
-    renderPermits();
-  }, err => {
-    document.getElementById("permitListContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`;
+    renderVehicles(); renderPermits();
+  }, err => { document.getElementById("permitListContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`; });
+}
+function subscribeMakers() {
+  db.collection(MAKER_COLLECTION).orderBy("name").onSnapshot(snapshot => {
+    allMakers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderVehicles(); populateMakerSelect();
+    renderMasterItems("makerList", allMakers, m => `${escapeHtml(m.phone||"電話番号未登録")}${m.address ? " ・ " + escapeHtml(m.address) : ""}`, "deleteMaker", "まだメーカーが登録されていません");
+  });
+}
+function subscribeInsurers() {
+  db.collection(INSURER_COLLECTION).orderBy("name").onSnapshot(snapshot => {
+    allInsurers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderVehicles(); populateInsuranceSelect();
+    renderMasterItems("insurerList", allInsurers, i => escapeHtml(i.phone||"電話番号未登録"), "deleteInsurer", "まだ保険会社が登録されていません");
+  });
+}
+async function subscribeAreas() {
+  db.collection(AREA_COLLECTION).onSnapshot(async snapshot => {
+    if (snapshot.empty && !areaSeeded) {
+      areaSeeded = true;
+      const batch = db.batch();
+      DEFAULT_AREAS.forEach(a => batch.set(db.collection(AREA_COLLECTION).doc(), a));
+      await batch.commit();
+      return;
+    }
+    allAreas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    populatePermitAreaSelect(); renderAreaGrid(); renderAreaMasterLists();
   });
 }
 
-document.getElementById("searchInput").addEventListener("input", (e) => {
-  currentSearch = e.target.value;
-  renderVehicles();
-});
+document.getElementById("searchInput").addEventListener("input", (e) => { currentSearch = e.target.value; renderVehicles(); });
 
 const vehicleOverlay = document.getElementById("modalOverlay");
 const vehicleFormEl = document.getElementById("vehicleForm");
@@ -586,7 +607,7 @@ document.getElementById("addBtn").addEventListener("click", () => {
   document.getElementById("editId").value = "";
   document.getElementById("modalTitle").textContent = "車両を追加";
   document.getElementById("deleteBtnInModal").style.display = "none";
-  renderPermitSelectList([]);
+  populateMakerSelect(""); populateInsuranceSelect("");
   vehicleOverlay.classList.add("open");
 });
 document.getElementById("cancelBtn").addEventListener("click", () => vehicleOverlay.classList.remove("open"));
@@ -596,20 +617,16 @@ window.openEdit = function(id) {
   const v = allVehicles.find(x => x.id === id);
   if (!v) return;
   document.getElementById("editId").value = id;
-  document.getElementById("companyName").value = v.companyName || "";
-  document.getElementById("companyPhone").value = v.companyPhone || "";
-  document.getElementById("companyAddress").value = v.companyAddress || "";
+  populateMakerSelect(v.companyName || "");
   document.getElementById("nickname").value = v.nickname || "";
   document.getElementById("plateNumber").value = v.plateNumber || "";
   document.getElementById("registeredDate").value = v.registeredDate || "";
   document.getElementById("shakenDate").value = v.shakenDate || "";
-  document.getElementById("insuranceCompany").value = v.insuranceCompany || "";
-  document.getElementById("insurancePhone").value = v.insurancePhone || "";
+  populateInsuranceSelect(v.insuranceCompany || "");
   document.getElementById("bodyShape").value = v.bodyShape || "";
   document.getElementById("maxLoad").value = v.maxLoad || "";
   document.getElementById("vehicleWeight").value = v.vehicleWeight || "";
   document.getElementById("grossWeight").value = v.grossWeight || "";
-  renderPermitSelectList(v.linkedPermitIds || []);
   document.getElementById("modalTitle").textContent = "車両を編集";
   document.getElementById("deleteBtnInModal").style.display = "block";
   vehicleOverlay.classList.add("open");
@@ -629,171 +646,62 @@ window.deleteVehicle = function(id) {
 vehicleFormEl.addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = document.getElementById("editId").value;
-  const selectedPermitIds = Array.from(document.querySelectorAll(".permit-checkbox:checked")).map(cb => cb.value);
   const data = {
-    companyName: document.getElementById("companyName").value.trim(),
-    companyPhone: document.getElementById("companyPhone").value.trim(),
-    companyAddress: document.getElementById("companyAddress").value.trim(),
+    companyName: document.getElementById("companyName").value,
     nickname: document.getElementById("nickname").value.trim(),
     plateNumber: document.getElementById("plateNumber").value.trim(),
     registeredDate: document.getElementById("registeredDate").value,
     shakenDate: document.getElementById("shakenDate").value,
-    insuranceCompany: document.getElementById("insuranceCompany").value.trim(),
-    insurancePhone: document.getElementById("insurancePhone").value.trim(),
+    insuranceCompany: document.getElementById("insuranceCompany").value,
     bodyShape: document.getElementById("bodyShape").value,
     maxLoad: document.getElementById("maxLoad").value ? Number(document.getElementById("maxLoad").value) : null,
     vehicleWeight: document.getElementById("vehicleWeight").value ? Number(document.getElementById("vehicleWeight").value) : null,
     grossWeight: document.getElementById("grossWeight").value ? Number(document.getElementById("grossWeight").value) : null,
-    linkedPermitIds: selectedPermitIds,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   try {
-    if (id) {
-      await db.collection(VEHICLE_COLLECTION).doc(id).update(data);
-    } else {
+    if (id) { await db.collection(VEHICLE_COLLECTION).doc(id).update(data); }
+    else {
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      data.permittedAreas = [];
       await db.collection(VEHICLE_COLLECTION).add(data);
     }
     vehicleOverlay.classList.remove("open");
-  } catch (err) {
-    alert("保存エラー: " + err.message);
-  }
-});
-
-// ================= 許可車両管理 =================
-function renderAreaGrid() {
-  const container = document.getElementById("areaGridContainer");
-  let filtered = allVehicles;
-
-  if (currentAreaGridSearch.trim()) {
-    const q = currentAreaGridSearch.trim().toLowerCase();
-    filtered = filtered.filter(v =>
-      (v.nickname||"").toLowerCase().includes(q) ||
-      (v.plateNumber||"").toLowerCase().includes(q)
-    );
-  }
-
-  // エリア別の保有台数サマリー
-  const areaCounts = {};
-  AREA_LIST.forEach(a => areaCounts[a] = 0);
-  allVehicles.forEach(v => {
-    (v.permittedAreas||[]).forEach(a => { if (areaCounts[a] !== undefined) areaCounts[a]++; });
-  });
-  const areaCountBar = document.getElementById("areaCountBar");
-  areaCountBar.innerHTML = AREA_LIST.map(a =>
-    `<div class="company-count-chip">${escapeHtml(a)} <b>${areaCounts[a]}台</b></div>`
-  ).join("");
-
-  if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty-state">該当する車両がありません</div>';
-    return;
-  }
-
-  filtered = [...filtered].sort((a,b) => (a.plateNumber||"").localeCompare(b.plateNumber||""));
-
-  container.innerHTML = filtered.map(v => {
-    const permitted = v.permittedAreas || [];
-    const prefBoxes = AREA_PREFECTURES.map(a => {
-      const checked = permitted.includes(a);
-      return `
-        <label class="area-checkbox-item ${checked ? "checked" : ""}">
-          <input type="checkbox" class="area-checkbox" data-vehicle-id="${v.id}" data-area="${escapeHtml(a)}" ${checked ? "checked" : ""}>
-          <span>${escapeHtml(a)}</span>
-        </label>
-      `;
-    }).join("");
-    const cityBoxes = AREA_CITIES.map(a => {
-      const checked = permitted.includes(a);
-      return `
-        <label class="area-checkbox-item ${checked ? "checked" : ""}">
-          <input type="checkbox" class="area-checkbox" data-vehicle-id="${v.id}" data-area="${escapeHtml(a)}" ${checked ? "checked" : ""}>
-          <span>${escapeHtml(a)}</span>
-        </label>
-      `;
-    }).join("");
-
-    return `
-      <div class="card">
-        <div class="card-top">
-          <div>
-            <div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div>
-            <div class="card-sub">${escapeHtml(v.plateNumber||"")}</div>
-          </div>
-        </div>
-        <div class="area-checkbox-grid">
-          <div class="area-group-label">都道府県</div>
-          ${prefBoxes}
-          <div class="area-group-label">市区町村</div>
-          ${cityBoxes}
-        </div>
-      </div>
-    `;
-  }).join("");
-
-  document.querySelectorAll(".area-checkbox").forEach(cb => {
-    cb.addEventListener("change", async (e) => {
-      const vehicleId = e.target.dataset.vehicleId;
-      const area = e.target.dataset.area;
-      const field = firebase.firestore.FieldValue;
-      try {
-        await db.collection(VEHICLE_COLLECTION).doc(vehicleId).update({
-          permittedAreas: e.target.checked ? field.arrayUnion(area) : field.arrayRemove(area)
-        });
-      } catch (err) {
-        alert("更新エラー: " + err.message);
-      }
-    });
-  });
-}
-
-document.getElementById("areaGridSearchInput").addEventListener("input", (e) => {
-  currentAreaGridSearch = e.target.value;
-  renderAreaGrid();
-});
-document.getElementById("jpegBtnAreaGrid").addEventListener("click", () => {
-  exportAsJpeg("areaGridContainer", "許可車両管理.jpg");
+  } catch (err) { alert("保存エラー: " + err.message); }
 });
 
 // ================= 許可証管理 =================
+function populatePermitAreaSelect(selectedArea) {
+  const el = document.getElementById("permitArea");
+  const current = selectedArea !== undefined ? selectedArea : el.value;
+  const sorted = [...allAreas].sort((a,b) => (a.type === b.type ? a.name.localeCompare(b.name) : (a.type === "prefecture" ? -1 : 1)));
+  el.innerHTML = `<option value="">選択してください</option>` +
+    sorted.map(a => `<option value="${escapeHtml(a.name)}" ${a.name === current ? "selected" : ""}>${escapeHtml(a.name)}（${a.type === "prefecture" ? "都道府県" : "市区町村"}）</option>`).join("");
+}
+
 function renderPermits() {
   const container = document.getElementById("permitListContainer");
   let filtered = allPermits;
-
   if (currentPermitSearch.trim()) {
     const q = currentPermitSearch.trim().toLowerCase();
-    filtered = filtered.filter(p =>
-      (p.prefecture||"").toLowerCase().includes(q) ||
-      (p.city||"").toLowerCase().includes(q) ||
-      (p.permitNumber||"").toLowerCase().includes(q)
-    );
+    filtered = filtered.filter(p => (p.area||"").toLowerCase().includes(q) || (p.permitNumber||"").toLowerCase().includes(q));
   }
-
-  let warn=0;
-  allPermits.forEach(p => {
-    const s = getStatus(p.expiryDate);
-    if (s === "warn" || s === "expired") warn++;
-  });
+  let warn = 0;
+  allPermits.forEach(p => { const s = getStatus(p.expiryDate); if (s === "warn" || s === "expired") warn++; });
   document.getElementById("permitCountWarn").textContent = warn;
-
   filtered = [...filtered].sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate));
-
-  if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty-state">該当する許可証がありません</div>';
-    return;
-  }
+  if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する許可証がありません</div>'; return; }
 
   container.innerHTML = filtered.map(p => {
     const status = getStatus(p.expiryDate);
-    const linkedVehicles = allVehicles.filter(v => (v.linkedPermitIds||[]).includes(p.id));
+    const linkedVehicles = allVehicles.filter(v => (v.permittedAreas||[]).includes(p.area));
     const vehicleChipsHtml = linkedVehicles.length
       ? linkedVehicles.map(v => `<span class="vehicle-chip">${escapeHtml(v.nickname || "愛称未設定")} ・ ${escapeHtml(v.plateNumber||"")}</span>`).join("")
-      : `<span class="vehicle-chip none">紐づく車両なし</span>`;
+      : `<span class="vehicle-chip none">紐づく車両なし（許可車両管理タブでチェック）</span>`;
     return `
       <div class="card status-${status}">
         <div class="card-top">
-          <div>
-            <div class="card-title">${escapeHtml(areaLabel(p))}</div>
-          </div>
+          <div><div class="card-title">${escapeHtml(p.area)}</div></div>
           ${status !== "ok" ? `<div class="badge status-${status}">要更新</div>` : ""}
         </div>
         <div class="prow"><span class="k">許可番号</span><span>${escapeHtml(p.permitNumber||"-")}</span></div>
@@ -812,20 +720,16 @@ function renderPermits() {
     `;
   }).join("");
 }
-
-document.getElementById("permitSearchInput").addEventListener("input", (e) => {
-  currentPermitSearch = e.target.value;
-  renderPermits();
-});
+document.getElementById("permitSearchInput").addEventListener("input", (e) => { currentPermitSearch = e.target.value; renderPermits(); });
 
 const permitOverlay = document.getElementById("permitModalOverlay");
 const permitFormEl = document.getElementById("permitForm");
-
 document.getElementById("addPermitBtn").addEventListener("click", () => {
   permitFormEl.reset();
   document.getElementById("permitEditId").value = "";
   document.getElementById("permitModalTitle").textContent = "許可証を登録";
   document.getElementById("permitDeleteBtnInModal").style.display = "none";
+  populatePermitAreaSelect("");
   permitOverlay.classList.add("open");
 });
 document.getElementById("permitCancelBtn").addEventListener("click", () => permitOverlay.classList.remove("open"));
@@ -835,8 +739,7 @@ window.openEditPermit = function(id) {
   const p = allPermits.find(x => x.id === id);
   if (!p) return;
   document.getElementById("permitEditId").value = id;
-  document.getElementById("prefecture").value = p.prefecture || "";
-  document.getElementById("city").value = p.city || "";
+  populatePermitAreaSelect(p.area || "");
   document.getElementById("permitNumber").value = p.permitNumber || "";
   document.getElementById("issueDate").value = p.issueDate || "";
   document.getElementById("expiryDate").value = p.expiryDate || "";
@@ -856,26 +759,24 @@ window.deletePermit = function(id) {
   if (!confirm("この許可証を削除しますか？")) return;
   db.collection(PERMIT_COLLECTION).doc(id).delete();
 };
-
 permitFormEl.addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = document.getElementById("permitEditId").value;
   const data = {
-    prefecture: document.getElementById("prefecture").value.trim(),
-    city: document.getElementById("city").value.trim(),
+    area: document.getElementById("permitArea").value,
     permitNumber: document.getElementById("permitNumber").value.trim(),
     issueDate: document.getElementById("issueDate").value,
     expiryDate: document.getElementById("expiryDate").value,
     notes: document.getElementById("notes").value.trim(),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
+  if (!data.area) { alert("エリアを選択してください"); return; }
   try {
     if (id) {
       const before = allPermits.find(x => x.id === id);
       if (before && before.expiryDate !== data.expiryDate) {
         await db.collection(PERMIT_COLLECTION).doc(id).collection("history").add({
-          previousExpiryDate: before.expiryDate,
-          changedAt: firebase.firestore.FieldValue.serverTimestamp()
+          previousExpiryDate: before.expiryDate, changedAt: firebase.firestore.FieldValue.serverTimestamp()
         });
       }
       await db.collection(PERMIT_COLLECTION).doc(id).update(data);
@@ -884,69 +785,161 @@ permitFormEl.addEventListener("submit", async (e) => {
       await db.collection(PERMIT_COLLECTION).add(data);
     }
     permitOverlay.classList.remove("open");
-  } catch (err) {
-    alert("保存エラー: " + err.message);
-  }
+  } catch (err) { alert("保存エラー: " + err.message); }
 });
 
-subscribeVehicles();
-subscribePermits();
+// ================= 許可車両管理 =================
+function renderAreaGrid() {
+  const container = document.getElementById("areaGridContainer");
+  let filtered = allVehicles;
+  if (currentAreaGridSearch.trim()) {
+    const q = currentAreaGridSearch.trim().toLowerCase();
+    filtered = filtered.filter(v => (v.nickname||"").toLowerCase().includes(q) || (v.plateNumber||"").toLowerCase().includes(q));
+  }
+  const prefectures = allAreas.filter(a => a.type === "prefecture").sort((a,b)=>a.name.localeCompare(b.name));
+  const cities = allAreas.filter(a => a.type === "city").sort((a,b)=>a.name.localeCompare(b.name));
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
+  const areaCounts = {};
+  allAreas.forEach(a => areaCounts[a.name] = 0);
+  allVehicles.forEach(v => (v.permittedAreas||[]).forEach(a => { if (areaCounts[a] !== undefined) areaCounts[a]++; }));
+  document.getElementById("areaCountBar").innerHTML = allAreas.map(a =>
+    `<div class="company-count-chip">${escapeHtml(a.name)} <b>${areaCounts[a.name]||0}台</b></div>`
+  ).join("");
+
+  if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する車両がありません</div>'; return; }
+  filtered = [...filtered].sort((a,b) => (a.plateNumber||"").localeCompare(b.plateNumber||""));
+
+  function boxesFor(list, v) {
+    const permitted = v.permittedAreas || [];
+    return list.map(a => {
+      const checked = permitted.includes(a.name);
+      return `<label class="area-checkbox-item ${checked?"checked":""}">
+        <input type="checkbox" class="area-checkbox" data-vehicle-id="${v.id}" data-area="${escapeHtml(a.name)}" ${checked?"checked":""}>
+        <span>${escapeHtml(a.name)}</span>
+      </label>`;
+    }).join("");
+  }
+
+  container.innerHTML = filtered.map(v => `
+    <div class="card">
+      <div class="card-top"><div><div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div><div class="card-sub">${escapeHtml(v.plateNumber||"")}</div></div></div>
+      <div class="area-checkbox-grid">
+        <div class="area-group-label">都道府県</div>${boxesFor(prefectures, v)}
+        <div class="area-group-label">市区町村</div>${boxesFor(cities, v)}
+      </div>
+    </div>
+  `).join("");
+
+  document.querySelectorAll(".area-checkbox").forEach(cb => {
+    cb.addEventListener("change", async (e) => {
+      const vehicleId = e.target.dataset.vehicleId, area = e.target.dataset.area;
+      const field = firebase.firestore.FieldValue;
+      try {
+        await db.collection(VEHICLE_COLLECTION).doc(vehicleId).update({
+          permittedAreas: e.target.checked ? field.arrayUnion(area) : field.arrayRemove(area)
+        });
+      } catch (err) { alert("更新エラー: " + err.message); }
+    });
   });
 }
+document.getElementById("areaGridSearchInput").addEventListener("input", (e) => { currentAreaGridSearch = e.target.value; renderAreaGrid(); });
 
-// ---- ホーム画面に追加(PWAインストール) ----
-let deferredInstallPrompt = null;
-const installBtn = document.getElementById("installBtn");
-
-window.addEventListener("beforeinstallprompt", (e) => {
-  e.preventDefault();
-  deferredInstallPrompt = e;
-  installBtn.style.display = "inline-block";
-});
-
-installBtn.addEventListener("click", async () => {
-  if (deferredInstallPrompt) {
-    deferredInstallPrompt.prompt();
-    await deferredInstallPrompt.userChoice;
-    deferredInstallPrompt = null;
-    installBtn.style.display = "none";
-  } else {
-    alert("iPhoneの場合は、共有ボタン(□に↑)から「ホーム画面に追加」を選んでください。");
-  }
-});
-
-// iOSはbeforeinstallpromptが発火しないため、未インストール時は案内ボタンを常時表示
-const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
-if (isIOS && !isStandalone) {
-  installBtn.style.display = "inline-block";
+// ================= マスター管理 =================
+function populateMakerSelect(selectedName) {
+  const el = document.getElementById("companyName");
+  const current = selectedName !== undefined ? selectedName : el.value;
+  if (!allMakers.length) { el.innerHTML = `<option value="">メーカーが未登録です</option>`; return; }
+  el.innerHTML = allMakers.map(m => `<option value="${escapeHtml(m.name)}" ${m.name===current?"selected":""}>${escapeHtml(m.name)}</option>`).join("");
 }
+window.deleteMaker = function(id) {
+  if (!confirm("このメーカーを削除しますか？")) return;
+  db.collection(MAKER_COLLECTION).doc(id).delete();
+};
+document.getElementById("addMakerBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newMakerName").value.trim();
+  const phone = document.getElementById("newMakerPhone").value.trim();
+  const address = document.getElementById("newMakerAddress").value.trim();
+  if (!name) { alert("メーカー名を入力してください"); return; }
+  await db.collection(MAKER_COLLECTION).add({ name, phone, address, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  document.getElementById("newMakerName").value = ""; document.getElementById("newMakerPhone").value = ""; document.getElementById("newMakerAddress").value = "";
+});
 
-// ---- JPEG保存(印刷用) ----
+function populateInsuranceSelect(selectedName) {
+  const el = document.getElementById("insuranceCompany");
+  const current = selectedName !== undefined ? selectedName : el.value;
+  el.innerHTML = `<option value="">未設定</option>` + allInsurers.map(i => `<option value="${escapeHtml(i.name)}" ${i.name===current?"selected":""}>${escapeHtml(i.name)}</option>`).join("");
+}
+window.deleteInsurer = function(id) {
+  if (!confirm("この保険会社を削除しますか？")) return;
+  db.collection(INSURER_COLLECTION).doc(id).delete();
+};
+document.getElementById("addInsurerBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newInsurerName").value.trim();
+  const phone = document.getElementById("newInsurerPhone").value.trim();
+  if (!name) { alert("保険会社名を入力してください"); return; }
+  await db.collection(INSURER_COLLECTION).add({ name, phone, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+  document.getElementById("newInsurerName").value = ""; document.getElementById("newInsurerPhone").value = "";
+});
+
+function renderAreaMasterLists() {
+  const prefectures = allAreas.filter(a => a.type === "prefecture").sort((a,b)=>a.name.localeCompare(b.name));
+  const cities = allAreas.filter(a => a.type === "city").sort((a,b)=>a.name.localeCompare(b.name));
+  renderMasterItems("prefectureAreaList", prefectures, () => "都道府県", "deleteArea", "まだ登録されていません");
+  renderMasterItems("cityAreaList", cities, () => "市区町村", "deleteArea", "まだ登録されていません");
+}
+window.deleteArea = function(id) {
+  if (!confirm("このエリアを削除しますか？（車両側のチェックは残りますが表示されなくなります）")) return;
+  db.collection(AREA_COLLECTION).doc(id).delete();
+};
+document.getElementById("addPrefectureAreaBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newPrefectureArea").value.trim();
+  if (!name) { alert("都道府県名を入力してください"); return; }
+  await db.collection(AREA_COLLECTION).add({ name, type: "prefecture" });
+  document.getElementById("newPrefectureArea").value = "";
+});
+document.getElementById("addCityAreaBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newCityArea").value.trim();
+  if (!name) { alert("市区町村名を入力してください"); return; }
+  await db.collection(AREA_COLLECTION).add({ name, type: "city" });
+  document.getElementById("newCityArea").value = "";
+});
+
+// ---- JPEG出力 ----
 async function exportAsJpeg(elementId, filename) {
   const el = document.getElementById(elementId);
-  if (!el || !window.html2canvas) {
-    alert("JPEG出力の準備中です。少し待ってから再度お試しください。");
-    return;
-  }
+  if (!el || !window.html2canvas) { alert("JPEG出力の準備中です。少し待ってから再度お試しください。"); return; }
   const canvas = await html2canvas(el, { backgroundColor: "#f2f4f7", scale: 2 });
   const link = document.createElement("a");
   link.download = filename;
   link.href = canvas.toDataURL("image/jpeg", 0.92);
   link.click();
 }
+document.getElementById("jpegBtnVehicle").addEventListener("click", () => exportAsJpeg("listContainer", "車両台帳.jpg"));
+document.getElementById("jpegBtnPermit").addEventListener("click", () => exportAsJpeg("permitListContainer", "許可証一覧.jpg"));
+document.getElementById("jpegBtnAreaGrid").addEventListener("click", () => exportAsJpeg("areaGridContainer", "許可車両管理.jpg"));
 
-document.getElementById("jpegBtnVehicle").addEventListener("click", () => {
-  exportAsJpeg("listContainer", "車両台帳.jpg");
+// ---- ホーム画面に追加(PWAインストール) ----
+let deferredInstallPrompt = null;
+const installBtn = document.getElementById("installBtn");
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredInstallPrompt = e; installBtn.style.display = "inline-block"; });
+installBtn.addEventListener("click", async () => {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt(); await deferredInstallPrompt.userChoice; deferredInstallPrompt = null; installBtn.style.display = "none";
+  } else { alert("iPhoneの場合は、共有ボタン(□に↑)から「ホーム画面に追加」を選んでください。"); }
 });
-document.getElementById("jpegBtnPermit").addEventListener("click", () => {
-  exportAsJpeg("permitListContainer", "許可証一覧.jpg");
-});
+const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+const isIOS = /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase());
+if (isIOS && !isStandalone) { installBtn.style.display = "inline-block"; }
 
+subscribeVehicles();
+subscribePermits();
+subscribeAreas();
+subscribeMakers();
+subscribeInsurers();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
 </script>
 </body>
 </html>
