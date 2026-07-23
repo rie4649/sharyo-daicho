@@ -70,12 +70,13 @@
   .card.status-expired { border-left-color: #ef4444; }
   .card.card-collapsed { cursor: pointer; padding: 12px 14px; }
   .card.card-collapsed:active { background: #f7f9fb; }
-  .reorder-btns { display: flex; flex-direction: column; gap: 2px; margin-right: 4px; }
+  .reorder-btns { display: flex; flex-direction: column; gap: 2px; margin-left: 8px; flex-shrink: 0; }
   .reorder-btn {
-    width: 26px; height: 22px; border: 1px solid #d4d9e0; background: #fff; border-radius: 5px;
-    font-size: 10px; color: #556; cursor: pointer; line-height: 1;
+    width: 22px; height: 17px; border: 1px solid #e2e6ea; background: #f8f9fb; border-radius: 4px;
+    font-size: 9px; color: #9aa5b0; cursor: pointer; line-height: 1; padding: 0;
   }
   .reorder-btn:active { background: #eef1f6; }
+  .collapsed-right { display: flex; align-items: center; gap: 8px; }
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
   .card-title { font-size: 16px; font-weight: 700; }
   .card-sub { font-size: 12.5px; color: #6b7686; margin-top: 2px; }
@@ -216,6 +217,7 @@
   </div>
   <div class="main-tabs">
     <div class="main-tab active" data-section="vehicle">🚛 車両台帳</div>
+    <div class="main-tab" data-section="vehicleMonth">🗓️ 車検月別</div>
     <div class="main-tab" data-section="permit">📋 許可証管理</div>
     <div class="main-tab" data-section="areaGrid">🗺️ 許可車両管理</div>
     <div class="main-tab" data-section="master">⚙️ マスター管理</div>
@@ -235,6 +237,15 @@
   </div>
   <div class="list" id="listContainer"><div class="loading">読み込み中...</div></div>
   <button class="fab" id="addBtn">＋</button>
+</div>
+
+<!-- ================= 車検月別セクション ================= -->
+<div class="section" id="section-vehicleMonth">
+  <div class="toolbar-row">
+    <div class="search-box"><input type="text" id="monthSearchInput" placeholder="愛称・車番で検索"></div>
+    <button class="jpeg-btn" id="jpegBtnMonth">🖨️ JPEG</button>
+  </div>
+  <div class="list" id="monthListContainer"><div class="loading">読み込み中...</div></div>
 </div>
 
 <!-- ================= 許可証管理セクション ================= -->
@@ -592,13 +603,15 @@ function renderVehicles() {
           <div class="card-top" style="margin-bottom:0;">
             <div>
               <div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div>
-              <div class="card-sub">${escapeHtml(v.plateNumber||"")}</div>
+              <div class="card-sub">${escapeHtml(v.plateNumber||"")} ・ 車検 ${v.shakenDate || "未設定"}</div>
             </div>
-            <div class="reorder-btns">
-              <button class="reorder-btn" onclick="event.stopPropagation(); moveVehicle('${v.id}','up')">▲</button>
-              <button class="reorder-btn" onclick="event.stopPropagation(); moveVehicle('${v.id}','down')">▼</button>
+            <div class="collapsed-right">
+              ${shakenStatus !== "ok" ? `<div class="badge status-${shakenStatus}">要更新</div>` : ""}
+              <div class="reorder-btns">
+                <button class="reorder-btn" onclick="event.stopPropagation(); moveVehicle('${v.id}','up')">▲</button>
+                <button class="reorder-btn" onclick="event.stopPropagation(); moveVehicle('${v.id}','down')">▼</button>
+              </div>
             </div>
-            <div>${shakenStatus !== "ok" ? `<div class="badge status-${shakenStatus}">要更新</div>` : ""}</div>
           </div>
         </div>
       `;
@@ -671,7 +684,7 @@ window.toggleCompanyInfo = function(id) {
 function subscribeVehicles() {
   db.collection(VEHICLE_COLLECTION).onSnapshot(snapshot => {
     allVehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderVehicles(); renderPermits(); renderAreaGrid(); renderAreaByArea();
+    renderVehicles(); renderPermits(); renderAreaGrid(); renderAreaByArea(); renderVehiclesByMonth();
   }, err => { document.getElementById("listContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`; });
 }
 function subscribePermits() {
@@ -728,6 +741,51 @@ async function subscribeAreas() {
 }
 
 document.getElementById("searchInput").addEventListener("input", (e) => { currentSearch = e.target.value; renderVehicles(); });
+
+let currentMonthSearch = "";
+function renderVehiclesByMonth() {
+  const container = document.getElementById("monthListContainer");
+  let filtered = allVehicles;
+  if (currentMonthSearch.trim()) {
+    const q = currentMonthSearch.trim().toLowerCase();
+    filtered = filtered.filter(v => (v.nickname||"").toLowerCase().includes(q) || (v.plateNumber||"").toLowerCase().includes(q));
+  }
+  if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する車両がありません</div>'; return; }
+
+  const groups = {};
+  filtered.forEach(v => {
+    const key = v.shakenDate ? v.shakenDate.slice(0,7) : "未設定";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(v);
+  });
+  const sortedKeys = Object.keys(groups).sort((a,b) => {
+    if (a === "未設定") return 1;
+    if (b === "未設定") return -1;
+    return a.localeCompare(b);
+  });
+
+  container.innerHTML = sortedKeys.map(key => {
+    const vehicles = groups[key].sort((a,b) => (a.shakenDate||"").localeCompare(b.shakenDate||""));
+    const label = key === "未設定" ? "車検日未設定" : `${key.slice(0,4)}年${key.slice(5,7)}月`;
+    const rowsHtml = vehicles.map(v => {
+      const s = getStatus(v.shakenDate) || "ok";
+      return `
+        <div class="prow">
+          <span class="k">${escapeHtml(v.nickname || v.plateNumber)} ・ ${escapeHtml(v.plateNumber||"")}</span>
+          <span>${v.shakenDate || "-"} ${s !== "ok" ? `<span class="badge status-${s}" style="margin-left:6px;">要更新</span>` : ""}</span>
+        </div>
+      `;
+    }).join("");
+    return `
+      <div class="card">
+        <div class="card-top"><div class="card-title">${label}</div><div class="badge status-ok">${vehicles.length}台</div></div>
+        ${rowsHtml}
+      </div>
+    `;
+  }).join("");
+}
+document.getElementById("monthSearchInput").addEventListener("input", (e) => { currentMonthSearch = e.target.value; renderVehiclesByMonth(); });
+document.getElementById("jpegBtnMonth").addEventListener("click", () => exportAsJpeg("monthListContainer", "車検月別一覧.jpg"));
 
 function renderVehicleFormAreaCheckboxes(selectedAreas) {
   const selected = selectedAreas || [];
