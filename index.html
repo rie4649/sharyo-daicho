@@ -338,7 +338,10 @@
         <div class="field"><label>車両重量(kg)</label><input type="number" id="vehicleWeight" placeholder="kg"></div>
         <div class="field"><label>車両総重量(kg)</label><input type="number" id="grossWeight" placeholder="kg"></div>
       </div>
-      <div class="field-hint" style="margin-bottom:12px;">エリアごとの許可状況は「🗺️ 許可車両管理」タブで設定します</div>
+      <div class="field">
+        <label>許可エリア</label>
+        <div class="area-checkbox-grid" id="vehicleFormAreaGrid" style="border-top:none;padding-top:0;"></div>
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn-cancel" id="cancelBtn">キャンセル</button>
         <button type="button" class="btn-cancel btn-delete-inline" id="deleteBtnInModal" style="display:none;">削除</button>
@@ -639,6 +642,28 @@ async function subscribeAreas() {
 
 document.getElementById("searchInput").addEventListener("input", (e) => { currentSearch = e.target.value; renderVehicles(); });
 
+function renderVehicleFormAreaCheckboxes(selectedAreas) {
+  const selected = selectedAreas || [];
+  const el = document.getElementById("vehicleFormAreaGrid");
+  const prefectures = allAreas.filter(a => a.type === "prefecture").sort((a,b)=>a.name.localeCompare(b.name));
+  const cities = allAreas.filter(a => a.type === "city").sort((a,b)=>a.name.localeCompare(b.name));
+  function boxes(list) {
+    return list.map(a => {
+      const checked = selected.includes(a.name);
+      return `<label class="area-checkbox-item ${checked?"checked":""}">
+        <input type="checkbox" class="vehicle-form-area-checkbox" value="${escapeHtml(a.name)}" ${checked?"checked":""}>
+        <span>${escapeHtml(a.name)}</span>
+      </label>`;
+    }).join("");
+  }
+  el.innerHTML = `<div class="area-group-label">都道府県</div>${boxes(prefectures)}<div class="area-group-label">市区町村</div>${boxes(cities)}`;
+  el.querySelectorAll(".vehicle-form-area-checkbox").forEach(cb => {
+    cb.addEventListener("change", () => {
+      cb.closest(".area-checkbox-item").classList.toggle("checked", cb.checked);
+    });
+  });
+}
+
 const vehicleOverlay = document.getElementById("modalOverlay");
 const vehicleFormEl = document.getElementById("vehicleForm");
 
@@ -648,6 +673,7 @@ document.getElementById("addBtn").addEventListener("click", () => {
   document.getElementById("modalTitle").textContent = "車両を追加";
   document.getElementById("deleteBtnInModal").style.display = "none";
   populateMakerSelect(""); populateInsuranceSelect(""); populateBodyShapeSelect("");
+  renderVehicleFormAreaCheckboxes([]);
   vehicleOverlay.classList.add("open");
 });
 document.getElementById("cancelBtn").addEventListener("click", () => vehicleOverlay.classList.remove("open"));
@@ -664,6 +690,7 @@ window.openEdit = function(id) {
   document.getElementById("shakenDate").value = v.shakenDate || "";
   populateInsuranceSelect(v.insuranceCompany || "");
   populateBodyShapeSelect(v.bodyShape || "");
+  renderVehicleFormAreaCheckboxes(v.permittedAreas || []);
   document.getElementById("maxLoad").value = v.maxLoad || "";
   document.getElementById("vehicleWeight").value = v.vehicleWeight || "";
   document.getElementById("grossWeight").value = v.grossWeight || "";
@@ -686,6 +713,7 @@ window.deleteVehicle = function(id) {
 vehicleFormEl.addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = document.getElementById("editId").value;
+  const selectedAreas = Array.from(document.querySelectorAll(".vehicle-form-area-checkbox:checked")).map(cb => cb.value);
   const data = {
     companyName: document.getElementById("companyName").value,
     nickname: document.getElementById("nickname").value.trim(),
@@ -697,13 +725,13 @@ vehicleFormEl.addEventListener("submit", async (e) => {
     maxLoad: document.getElementById("maxLoad").value ? Number(document.getElementById("maxLoad").value) : null,
     vehicleWeight: document.getElementById("vehicleWeight").value ? Number(document.getElementById("vehicleWeight").value) : null,
     grossWeight: document.getElementById("grossWeight").value ? Number(document.getElementById("grossWeight").value) : null,
+    permittedAreas: selectedAreas,
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   };
   try {
     if (id) { await db.collection(VEHICLE_COLLECTION).doc(id).update(data); }
     else {
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-      data.permittedAreas = [];
       await db.collection(VEHICLE_COLLECTION).add(data);
     }
     vehicleOverlay.classList.remove("open");
