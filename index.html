@@ -68,6 +68,8 @@
   .card.status-ok { border-left-color: #22c55e; }
   .card.status-warn { border-left-color: #eab308; }
   .card.status-expired { border-left-color: #ef4444; }
+  .card.card-collapsed { cursor: pointer; padding: 12px 14px; }
+  .card.card-collapsed:active { background: #f7f9fb; }
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
   .card-title { font-size: 16px; font-weight: 700; }
   .card-sub { font-size: 12.5px; color: #6b7686; margin-top: 2px; }
@@ -453,6 +455,7 @@ const DEFAULT_AREAS = [
 let allVehicles = [], allPermits = [], allAreas = [], allMakers = [], allInsurers = [], allBodyShapes = [];
 let currentSearch = "", currentPermitSearch = "", currentAreaGridSearch = "";
 let expandedCompanyIds = new Set();
+let expandedVehicleIds = new Set();
 let areaSeeded = false;
 let bodyShapeSeeded = false;
 
@@ -578,13 +581,29 @@ function renderVehicles() {
       ? (insurer && insurer.phone ? `<a href="tel:${escapeHtml(insurer.phone)}">${escapeHtml(v.insuranceCompany)} 📞</a>` : escapeHtml(v.insuranceCompany))
       : "-";
 
+    const isVehicleExpanded = expandedVehicleIds.has(v.id);
+
+    if (!isVehicleExpanded) {
+      return `
+        <div class="card status-${shakenStatus} card-collapsed" onclick="toggleVehicleExpand('${v.id}')">
+          <div class="card-top" style="margin-bottom:0;">
+            <div>
+              <div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div>
+              <div class="card-sub">${escapeHtml(v.plateNumber||"")}</div>
+            </div>
+            <div>${shakenStatus !== "ok" ? `<div class="badge status-${shakenStatus}">要更新</div>` : ""}</div>
+          </div>
+        </div>
+      `;
+    }
+
     return `
       <div class="card status-${shakenStatus}">
-        <div class="card-top">
+        <div class="card-top" onclick="toggleVehicleExpand('${v.id}')" style="cursor:pointer;">
           <div>
             <div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div>
             <div class="card-sub">
-              <span class="company-link" onclick="toggleCompanyInfo('${v.id}')">${escapeHtml(v.companyName)}</span>
+              <span class="company-link" onclick="event.stopPropagation(); toggleCompanyInfo('${v.id}')">${escapeHtml(v.companyName)}</span>
               ・ ${escapeHtml(v.plateNumber||"")}
             </div>
             ${companyInfoPanel}
@@ -614,6 +633,10 @@ function renderVehicles() {
     `;
   }).join("");
 }
+window.toggleVehicleExpand = function(id) {
+  if (expandedVehicleIds.has(id)) { expandedVehicleIds.delete(id); } else { expandedVehicleIds.add(id); }
+  renderVehicles();
+};
 window.toggleCompanyInfo = function(id) {
   if (expandedCompanyIds.has(id)) expandedCompanyIds.delete(id); else expandedCompanyIds.add(id);
   renderVehicles();
