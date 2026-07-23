@@ -345,7 +345,7 @@
         <div class="field"><label>車番</label><input type="text" id="plateNumber" placeholder="車番" required></div>
       </div>
       <div class="field-row">
-        <div class="field"><label>登録年月日</label><input type="date" id="registeredDate"></div>
+        <div class="field"><label>初年度登録</label><input type="month" id="registeredDate"></div>
         <div class="field"><label>車検有効期限</label><input type="date" id="shakenDate"></div>
       </div>
       <div class="field">
@@ -359,6 +359,10 @@
           <option value="">未選択</option>
         </select>
         <div class="field-hint">一覧にない場合は⚙️マスター管理タブから追加してください</div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label>型式</label><input type="text" id="modelType" placeholder="型式"></div>
+        <div class="field"><label>総排気量又は定格出力（kW/L）</label><input type="text" id="engineOutput" placeholder="例：2.99 / 110kW"></div>
       </div>
       <div class="field-row">
         <div class="field"><label>最大積載量(kg)</label><input type="number" id="maxLoad" placeholder="kg"></div>
@@ -588,9 +592,11 @@ function renderVehicles() {
           <div>${shakenStatus !== "ok" ? `<div class="badge status-${shakenStatus}">要更新</div>` : ""}</div>
         </div>
         <div class="card-grid">
-          <div class="card-row"><span class="k">登録年月日</span>${v.registeredDate || "-"}</div>
+          <div class="card-row"><span class="k">初年度登録</span>${v.registeredDate || "-"}</div>
           <div class="card-row"><span class="k">車検期限</span>${v.shakenDate || "-"}</div>
           <div class="card-row"><span class="k">保険会社</span>${insuranceHtml}</div>
+          <div class="card-row"><span class="k">型式</span>${escapeHtml(v.modelType || "-")}</div>
+          <div class="card-row"><span class="k">総排気量/定格出力</span>${escapeHtml(v.engineOutput || "-")}</div>
           <div class="card-row"><span class="k">車体の形状</span>${escapeHtml(v.bodyShape || "-")}</div>
           <div class="card-row"><span class="k">最大積載量</span>${fmtNum(v.maxLoad)}</div>
           <div class="card-row"><span class="k">車両重量</span>${fmtNum(v.vehicleWeight)}</div>
@@ -629,7 +635,12 @@ function subscribeMakers() {
   db.collection(MAKER_COLLECTION).orderBy("name").onSnapshot(snapshot => {
     allMakers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderVehicles(); populateMakerSelect();
-    renderMasterItems("makerList", allMakers, m => `${escapeHtml(m.phone||"電話番号未登録")}${m.address ? " ・ " + escapeHtml(m.address) : ""}`, "deleteMaker", "まだメーカーが登録されていません");
+    renderMasterItems("makerList", allMakers, m => {
+      const parts = [];
+      parts.push(m.phone ? `<a href="tel:${escapeHtml(m.phone)}" onclick="event.stopPropagation()">📞 ${escapeHtml(m.phone)}</a>` : "電話番号未登録");
+      if (m.address) parts.push(`<a href="https://maps.google.com/?q=${encodeURIComponent(m.address)}" target="_blank" onclick="event.stopPropagation()">📍 ${escapeHtml(m.address)}</a>`);
+      return parts.join(" ・ ");
+    }, "deleteMaker", "まだメーカーが登録されていません");
   });
 }
 function subscribeInsurers() {
@@ -714,6 +725,8 @@ window.openEdit = function(id) {
   document.getElementById("nickname").value = v.nickname || "";
   document.getElementById("plateNumber").value = v.plateNumber || "";
   document.getElementById("registeredDate").value = v.registeredDate || "";
+  document.getElementById("modelType").value = v.modelType || "";
+  document.getElementById("engineOutput").value = v.engineOutput || "";
   document.getElementById("shakenDate").value = v.shakenDate || "";
   populateInsuranceSelect(v.insuranceCompany || "");
   populateBodyShapeSelect(v.bodyShape || "");
@@ -746,6 +759,8 @@ vehicleFormEl.addEventListener("submit", async (e) => {
     nickname: document.getElementById("nickname").value.trim(),
     plateNumber: document.getElementById("plateNumber").value.trim(),
     registeredDate: document.getElementById("registeredDate").value,
+    modelType: document.getElementById("modelType").value.trim(),
+    engineOutput: document.getElementById("engineOutput").value.trim(),
     shakenDate: document.getElementById("shakenDate").value,
     insuranceCompany: document.getElementById("insuranceCompany").value,
     bodyShape: document.getElementById("bodyShape").value,
