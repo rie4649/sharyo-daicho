@@ -70,6 +70,12 @@
   .card.status-expired { border-left-color: #ef4444; }
   .card.card-collapsed { cursor: pointer; padding: 12px 14px; }
   .card.card-collapsed:active { background: #f7f9fb; }
+  .reorder-btns { display: flex; flex-direction: column; gap: 2px; margin-right: 4px; }
+  .reorder-btn {
+    width: 26px; height: 22px; border: 1px solid #d4d9e0; background: #fff; border-radius: 5px;
+    font-size: 10px; color: #556; cursor: pointer; line-height: 1;
+  }
+  .reorder-btn:active { background: #eef1f6; }
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
   .card-title { font-size: 16px; font-weight: 700; }
   .card-sub { font-size: 12.5px; color: #6b7686; margin-top: 2px; }
@@ -541,11 +547,8 @@ function renderVehicles() {
   const companyNames = Object.keys(companyCounts).sort((a,b) => companyCounts[b]-companyCounts[a]);
   companyCountBar.innerHTML = companyNames.map(name => `<div class="company-count-chip">${escapeHtml(name)} <b>${companyCounts[name]}台</b></div>`).join("");
 
-  filtered = [...filtered].sort((a,b) => {
-    const da = a.shakenDate ? new Date(a.shakenDate) : new Date("9999-12-31");
-    const db_ = b.shakenDate ? new Date(b.shakenDate) : new Date("9999-12-31");
-    return da - db_;
-  });
+  const vehicleOrderOf = (v) => (v.order !== undefined && v.order !== null) ? v.order : allVehicles.indexOf(v);
+  filtered = [...filtered].sort((a,b) => vehicleOrderOf(a) - vehicleOrderOf(b));
 
   if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する車両がありません</div>'; return; }
 
@@ -591,6 +594,10 @@ function renderVehicles() {
               <div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div>
               <div class="card-sub">${escapeHtml(v.plateNumber||"")}</div>
             </div>
+            <div class="reorder-btns">
+              <button class="reorder-btn" onclick="event.stopPropagation(); moveVehicle('${v.id}','up')">▲</button>
+              <button class="reorder-btn" onclick="event.stopPropagation(); moveVehicle('${v.id}','down')">▼</button>
+            </div>
             <div>${shakenStatus !== "ok" ? `<div class="badge status-${shakenStatus}">要更新</div>` : ""}</div>
           </div>
         </div>
@@ -633,6 +640,25 @@ function renderVehicles() {
     `;
   }).join("");
 }
+window.moveVehicle = async function(id, direction) {
+  const sorted = [...allVehicles].sort((a,b) => {
+    const oa = (a.order !== undefined && a.order !== null) ? a.order : allVehicles.indexOf(a);
+    const ob = (b.order !== undefined && b.order !== null) ? b.order : allVehicles.indexOf(b);
+    return oa - ob;
+  });
+  const idx = sorted.findIndex(v => v.id === id);
+  const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (idx === -1 || swapIdx < 0 || swapIdx >= sorted.length) return;
+  const a = sorted[idx], b = sorted[swapIdx];
+  const aOrder = (a.order !== undefined && a.order !== null) ? a.order : idx;
+  const bOrder = (b.order !== undefined && b.order !== null) ? b.order : swapIdx;
+  try {
+    const batch = db.batch();
+    batch.update(db.collection(VEHICLE_COLLECTION).doc(a.id), { order: bOrder });
+    batch.update(db.collection(VEHICLE_COLLECTION).doc(b.id), { order: aOrder });
+    await batch.commit();
+  } catch (err) { alert("並び替えエラー: " + err.message); }
+};
 window.toggleVehicleExpand = function(id) {
   if (expandedVehicleIds.has(id)) { expandedVehicleIds.delete(id); } else { expandedVehicleIds.add(id); }
   renderVehicles();
@@ -797,6 +823,8 @@ vehicleFormEl.addEventListener("submit", async (e) => {
     if (id) { await db.collection(VEHICLE_COLLECTION).doc(id).update(data); }
     else {
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      const maxOrder = allVehicles.reduce((max, v) => Math.max(max, (v.order !== undefined && v.order !== null) ? v.order : 0), 0);
+      data.order = maxOrder + 1;
       await db.collection(VEHICLE_COLLECTION).add(data);
     }
     vehicleOverlay.classList.remove("open");
@@ -834,7 +862,8 @@ function renderPermits() {
   let warn = 0;
   allPermits.forEach(p => { const s = getStatus(p.expiryDate); if (s === "warn" || s === "expired") warn++; });
   document.getElementById("permitCountWarn").textContent = warn;
-  filtered = [...filtered].sort((a,b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+  const permitOrderOf = (p) => (p.order !== undefined && p.order !== null) ? p.order : allPermits.indexOf(p);
+  filtered = [...filtered].sort((a,b) => permitOrderOf(a) - permitOrderOf(b));
   if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する許可証がありません</div>'; return; }
 
   container.innerHTML = filtered.map(p => {
@@ -847,6 +876,10 @@ function renderPermits() {
       <div class="card status-${status}">
         <div class="card-top">
           <div><div class="card-title">${escapeHtml(p.area)}</div><div class="card-cat">${wasteTypeLabel(p.wasteType)}</div></div>
+          <div class="reorder-btns">
+            <button class="reorder-btn" onclick="movePermit('${p.id}','up')">▲</button>
+            <button class="reorder-btn" onclick="movePermit('${p.id}','down')">▼</button>
+          </div>
           ${status !== "ok" ? `<div class="badge status-${status}">要更新</div>` : ""}
         </div>
         <div class="prow"><span class="k">許可番号</span><span>${escapeHtml(p.permitNumber||"-")}</span></div>
@@ -865,6 +898,25 @@ function renderPermits() {
     `;
   }).join("");
 }
+window.movePermit = async function(id, direction) {
+  const sorted = [...allPermits].sort((a,b) => {
+    const oa = (a.order !== undefined && a.order !== null) ? a.order : allPermits.indexOf(a);
+    const ob = (b.order !== undefined && b.order !== null) ? b.order : allPermits.indexOf(b);
+    return oa - ob;
+  });
+  const idx = sorted.findIndex(p => p.id === id);
+  const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (idx === -1 || swapIdx < 0 || swapIdx >= sorted.length) return;
+  const a = sorted[idx], b = sorted[swapIdx];
+  const aOrder = (a.order !== undefined && a.order !== null) ? a.order : idx;
+  const bOrder = (b.order !== undefined && b.order !== null) ? b.order : swapIdx;
+  try {
+    const batch = db.batch();
+    batch.update(db.collection(PERMIT_COLLECTION).doc(a.id), { order: bOrder });
+    batch.update(db.collection(PERMIT_COLLECTION).doc(b.id), { order: aOrder });
+    await batch.commit();
+  } catch (err) { alert("並び替えエラー: " + err.message); }
+};
 document.getElementById("permitSearchInput").addEventListener("input", (e) => { currentPermitSearch = e.target.value; renderPermits(); });
 
 const permitOverlay = document.getElementById("permitModalOverlay");
@@ -935,6 +987,8 @@ permitFormEl.addEventListener("submit", async (e) => {
       await db.collection(PERMIT_COLLECTION).doc(id).update(data);
     } else {
       data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      const maxOrder = allPermits.reduce((max, p) => Math.max(max, (p.order !== undefined && p.order !== null) ? p.order : 0), 0);
+      data.order = maxOrder + 1;
       await db.collection(PERMIT_COLLECTION).add(data);
     }
     permitOverlay.classList.remove("open");
@@ -960,7 +1014,11 @@ function renderAreaGrid() {
   ).join("");
 
   if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する車両がありません</div>'; return; }
-  filtered = [...filtered].sort((a,b) => (a.plateNumber||"").localeCompare(b.plateNumber||""));
+  filtered = [...filtered].sort((a,b) => {
+    const oa = (a.order !== undefined && a.order !== null) ? a.order : allVehicles.indexOf(a);
+    const ob = (b.order !== undefined && b.order !== null) ? b.order : allVehicles.indexOf(b);
+    return oa - ob;
+  });
 
   function boxesFor(list, v) {
     const permitted = v.permittedAreas || [];
@@ -975,7 +1033,13 @@ function renderAreaGrid() {
 
   container.innerHTML = filtered.map(v => `
     <div class="card">
-      <div class="card-top"><div><div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div><div class="card-sub">${escapeHtml(v.plateNumber||"")}</div></div></div>
+      <div class="card-top">
+        <div><div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div><div class="card-sub">${escapeHtml(v.plateNumber||"")}</div></div>
+        <div class="reorder-btns">
+          <button class="reorder-btn" onclick="moveVehicle('${v.id}','up')">▲</button>
+          <button class="reorder-btn" onclick="moveVehicle('${v.id}','down')">▼</button>
+        </div>
+      </div>
       <div class="area-checkbox-grid">
         <div class="area-group-label">都道府県</div>${boxesFor(prefectures, v)}
         <div class="area-group-label">市区町村</div>${boxesFor(cities, v)}
