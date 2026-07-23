@@ -123,6 +123,17 @@
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
   .field-hint { margin-top: 4px; color: #8b95a3; font-size: 12px; }
+  .waste-type-group { display: flex; gap: 8px; }
+  .waste-type-group label {
+    flex: 1; text-align: center; padding: 10px 4px; border: 1px solid #d1d9d7; border-radius: 8px;
+    font-size: 12.5px; cursor: pointer; background: #fff;
+  }
+  .waste-type-group input { display: none; }
+  .waste-type-group label.checked { border-color: #0f766e; background: #e6f4f2; color: #0f766e; font-weight: 700; }
+  .card-cat {
+    font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #e6f4f2; color: #0f766e;
+    margin-top: 4px; display: inline-block;
+  }
   .modal-actions { display: flex; gap: 10px; margin-top: 18px; }
   .modal-actions button { flex: 1; padding: 12px; border-radius: 10px; border: none; font-size: 15px; font-weight: 700; cursor: pointer; }
   .btn-cancel { background: #eee; color: #555; }
@@ -343,6 +354,14 @@
     <h2 id="permitModalTitle">許可証を登録</h2>
     <form id="permitForm">
       <input type="hidden" id="permitEditId">
+      <div class="field">
+        <label>種類</label>
+        <div class="waste-type-group" id="wasteTypeGroup">
+          <label class="checked"><input type="radio" name="wasteType" value="industrial" checked><span>産業廃棄物</span></label>
+          <label><input type="radio" name="wasteType" value="general"><span>一般廃棄物</span></label>
+          <label><input type="radio" name="wasteType" value="other"><span>その他</span></label>
+        </div>
+      </div>
       <div class="field">
         <label>エリア</label>
         <select id="permitArea" required><option value="">選択してください</option></select>
@@ -691,6 +710,18 @@ vehicleFormEl.addEventListener("submit", async (e) => {
   } catch (err) { alert("保存エラー: " + err.message); }
 });
 
+document.querySelectorAll('#wasteTypeGroup input[name="wasteType"]').forEach(input => {
+  input.addEventListener("change", () => {
+    document.querySelectorAll('#wasteTypeGroup label').forEach(l => l.classList.remove("checked"));
+    input.closest("label").classList.add("checked");
+  });
+});
+function wasteTypeLabel(t) {
+  if (t === "industrial") return "産業廃棄物";
+  if (t === "general") return "一般廃棄物";
+  return "その他";
+}
+
 // ================= 許可証管理 =================
 function populatePermitAreaSelect(selectedArea) {
   const el = document.getElementById("permitArea");
@@ -722,7 +753,7 @@ function renderPermits() {
     return `
       <div class="card status-${status}">
         <div class="card-top">
-          <div><div class="card-title">${escapeHtml(p.area)}</div></div>
+          <div><div class="card-title">${escapeHtml(p.area)}</div><div class="card-cat">${wasteTypeLabel(p.wasteType)}</div></div>
           ${status !== "ok" ? `<div class="badge status-${status}">要更新</div>` : ""}
         </div>
         <div class="prow"><span class="k">許可番号</span><span>${escapeHtml(p.permitNumber||"-")}</span></div>
@@ -751,6 +782,9 @@ document.getElementById("addPermitBtn").addEventListener("click", () => {
   document.getElementById("permitModalTitle").textContent = "許可証を登録";
   document.getElementById("permitDeleteBtnInModal").style.display = "none";
   populatePermitAreaSelect("");
+  document.querySelectorAll('#wasteTypeGroup label').forEach(l => l.classList.remove("checked"));
+  document.querySelector('#wasteTypeGroup input[value="industrial"]').checked = true;
+  document.querySelector('#wasteTypeGroup input[value="industrial"]').closest("label").classList.add("checked");
   permitOverlay.classList.add("open");
 });
 document.getElementById("permitCancelBtn").addEventListener("click", () => permitOverlay.classList.remove("open"));
@@ -761,6 +795,10 @@ window.openEditPermit = function(id) {
   if (!p) return;
   document.getElementById("permitEditId").value = id;
   populatePermitAreaSelect(p.area || "");
+  const wt = p.wasteType || "industrial";
+  document.querySelectorAll('#wasteTypeGroup label').forEach(l => l.classList.remove("checked"));
+  const wtInput = document.querySelector(`#wasteTypeGroup input[value="${wt}"]`);
+  if (wtInput) { wtInput.checked = true; wtInput.closest("label").classList.add("checked"); }
   document.getElementById("permitNumber").value = p.permitNumber || "";
   document.getElementById("issueDate").value = p.issueDate || "";
   document.getElementById("expiryDate").value = p.expiryDate || "";
@@ -785,6 +823,7 @@ permitFormEl.addEventListener("submit", async (e) => {
   const id = document.getElementById("permitEditId").value;
   const data = {
     area: document.getElementById("permitArea").value,
+    wasteType: document.querySelector('#wasteTypeGroup input[name="wasteType"]:checked').value,
     permitNumber: document.getElementById("permitNumber").value.trim(),
     issueDate: document.getElementById("issueDate").value,
     expiryDate: document.getElementById("expiryDate").value,
