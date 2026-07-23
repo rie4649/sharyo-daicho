@@ -1,4 +1,4 @@
-const CACHE_NAME = "sharyo-daicho-v1";
+const CACHE_NAME = "sharyo-daicho-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -30,18 +30,15 @@ self.addEventListener("fetch", (event) => {
   if (event.request.url.includes("firestore.googleapis.com")) {
     return;
   }
+  // ネットワーク優先: 常に最新を取りに行き、成功したらキャッシュも更新。
+  // オフライン等でネットワークが使えない時だけキャッシュにフォールバック。
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      return (
-        cached ||
-        fetch(event.request)
-          .then((response) => {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-            return response;
-          })
-          .catch(() => cached)
-      );
-    })
+    fetch(event.request)
+      .then((response) => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(event.request))
   );
 });
