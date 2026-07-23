@@ -232,12 +232,27 @@
 
 <!-- ================= 許可車両管理セクション ================= -->
 <div class="section" id="section-areaGrid">
-  <div class="company-count-bar" id="areaCountBar"></div>
-  <div class="toolbar-row">
-    <div class="search-box"><input type="text" id="areaGridSearchInput" placeholder="愛称・車番で検索"></div>
-    <button class="jpeg-btn" id="jpegBtnAreaGrid">🖨️ JPEG</button>
+  <div class="master-sub-tabs" style="padding:14px 16px 0;">
+    <div class="master-sub-tab active" data-viewmode="byVehicle">🚛 車両ごと</div>
+    <div class="master-sub-tab" data-viewmode="byArea">🗺️ エリアごと</div>
   </div>
-  <div class="list" id="areaGridContainer"><div class="loading">読み込み中...</div></div>
+
+  <div id="areaGridViewByVehicle">
+    <div class="company-count-bar" id="areaCountBar"></div>
+    <div class="toolbar-row">
+      <div class="search-box"><input type="text" id="areaGridSearchInput" placeholder="愛称・車番で検索"></div>
+      <button class="jpeg-btn" id="jpegBtnAreaGrid">🖨️ JPEG</button>
+    </div>
+    <div class="list" id="areaGridContainer"><div class="loading">読み込み中...</div></div>
+  </div>
+
+  <div id="areaGridViewByArea" style="display:none;">
+    <div class="toolbar-row">
+      <div class="search-box"><input type="text" id="areaByAreaSearchInput" placeholder="エリア名で検索"></div>
+      <button class="jpeg-btn" id="jpegBtnAreaByArea">🖨️ JPEG</button>
+    </div>
+    <div class="list" id="areaByAreaContainer"><div class="loading">読み込み中...</div></div>
+  </div>
 </div>
 
 <!-- ================= マスター管理セクション ================= -->
@@ -589,7 +604,7 @@ window.toggleCompanyInfo = function(id) {
 function subscribeVehicles() {
   db.collection(VEHICLE_COLLECTION).onSnapshot(snapshot => {
     allVehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderVehicles(); renderPermits(); renderAreaGrid();
+    renderVehicles(); renderPermits(); renderAreaGrid(); renderAreaByArea();
   }, err => { document.getElementById("listContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`; });
 }
 function subscribePermits() {
@@ -636,7 +651,7 @@ async function subscribeAreas() {
       return;
     }
     allAreas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    populatePermitAreaSelect(); renderAreaGrid(); renderAreaMasterLists();
+    populatePermitAreaSelect(); renderAreaGrid(); renderAreaMasterLists(); renderAreaByArea();
   });
 }
 
@@ -931,6 +946,57 @@ function renderAreaGrid() {
   });
 }
 document.getElementById("areaGridSearchInput").addEventListener("input", (e) => { currentAreaGridSearch = e.target.value; renderAreaGrid(); });
+
+// ---- 車両ごと / エリアごと の切り替え ----
+document.querySelectorAll('#section-areaGrid .master-sub-tab').forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll('#section-areaGrid .master-sub-tab').forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    const isByVehicle = tab.dataset.viewmode === "byVehicle";
+    document.getElementById("areaGridViewByVehicle").style.display = isByVehicle ? "block" : "none";
+    document.getElementById("areaGridViewByArea").style.display = isByVehicle ? "none" : "block";
+    if (!isByVehicle) renderAreaByArea();
+  });
+});
+
+let currentAreaByAreaSearch = "";
+function renderAreaByArea() {
+  const container = document.getElementById("areaByAreaContainer");
+  let areas = allAreas;
+  if (currentAreaByAreaSearch.trim()) {
+    const q = currentAreaByAreaSearch.trim().toLowerCase();
+    areas = areas.filter(a => a.name.toLowerCase().includes(q));
+  }
+  const prefectures = areas.filter(a => a.type === "prefecture").sort((a,b)=>a.name.localeCompare(b.name));
+  const cities = areas.filter(a => a.type === "city").sort((a,b)=>a.name.localeCompare(b.name));
+  const ordered = [...prefectures, ...cities];
+
+  if (ordered.length === 0) { container.innerHTML = '<div class="empty-state">該当するエリアがありません</div>'; return; }
+
+  container.innerHTML = ordered.map(a => {
+    const vehicles = allVehicles.filter(v => (v.permittedAreas||[]).includes(a.name));
+    const chipsHtml = vehicles.length
+      ? vehicles.map(v => `<span class="vehicle-chip">${escapeHtml(v.nickname || "愛称未設定")} ・ ${escapeHtml(v.plateNumber||"")}</span>`).join("")
+      : `<span class="vehicle-chip none">許可されている車両なし</span>`;
+    return `
+      <div class="card">
+        <div class="card-top">
+          <div>
+            <div class="card-title">${escapeHtml(a.name)}</div>
+            <div class="card-cat">${a.type === "prefecture" ? "都道府県" : "市区町村"}</div>
+          </div>
+          <div class="badge status-ok">${vehicles.length}台</div>
+        </div>
+        <div class="vehicle-chips-section">
+          <div class="vehicle-chips-label">許可車両一覧</div>
+          <div class="permit-chips">${chipsHtml}</div>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+document.getElementById("areaByAreaSearchInput").addEventListener("input", (e) => { currentAreaByAreaSearch = e.target.value; renderAreaByArea(); });
+document.getElementById("jpegBtnAreaByArea").addEventListener("click", () => exportAsJpeg("areaByAreaContainer", "エリア別許可車両.jpg"));
 
 // ================= マスター管理 =================
 function populateMakerSelect(selectedName) {
