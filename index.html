@@ -743,6 +743,19 @@ async function subscribeAreas() {
 document.getElementById("searchInput").addEventListener("input", (e) => { currentSearch = e.target.value; renderVehicles(); });
 
 let currentMonthSearch = "";
+function daysUntil(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d = new Date(dateStr);
+  return Math.floor((d - today) / (1000*60*60*24));
+}
+function daysLabel(days) {
+  if (days === null) return "-";
+  if (days < 0) return `${Math.abs(days)}日経過`;
+  if (days === 0) return "本日";
+  return `あと${days}日`;
+}
+
 function renderVehiclesByMonth() {
   const container = document.getElementById("monthListContainer");
   let filtered = allVehicles;
@@ -764,21 +777,37 @@ function renderVehiclesByMonth() {
     return a.localeCompare(b);
   });
 
+  const now = new Date();
+  const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+
   container.innerHTML = sortedKeys.map(key => {
     const vehicles = groups[key].sort((a,b) => (a.shakenDate||"").localeCompare(b.shakenDate||""));
-    const label = key === "未設定" ? "車検日未設定" : `${key.slice(0,4)}年${key.slice(5,7)}月`;
+    const label = key === "未設定" ? "車検日未設定" : `${key.slice(0,4)}年${key.slice(5,7)}月${key === thisMonthKey ? "（今月）" : ""}`;
+
+    // グループ全体の緊急度(この月の中で最も深刻なステータス)でカードの色を決める
+    let groupStatus = "ok";
+    vehicles.forEach(v => {
+      const s = getStatus(v.shakenDate);
+      if (s === "expired") groupStatus = "expired";
+      else if (s === "warn" && groupStatus !== "expired") groupStatus = "warn";
+    });
+
     const rowsHtml = vehicles.map(v => {
       const s = getStatus(v.shakenDate) || "ok";
+      const days = daysUntil(v.shakenDate);
       return `
         <div class="prow">
           <span class="k">${escapeHtml(v.nickname || v.plateNumber)} ・ ${escapeHtml(v.plateNumber||"")}</span>
-          <span>${v.shakenDate || "-"} ${s !== "ok" ? `<span class="badge status-${s}" style="margin-left:6px;">要更新</span>` : ""}</span>
+          <span>
+            ${v.shakenDate || "-"}
+            ${s !== "ok" ? `<span class="badge status-${s}" style="margin-left:6px;">${daysLabel(days)}</span>` : `<span style="color:#9aa5b0;margin-left:6px;font-size:12px;">${daysLabel(days)}</span>`}
+          </span>
         </div>
       `;
     }).join("");
     return `
-      <div class="card">
-        <div class="card-top"><div class="card-title">${label}</div><div class="badge status-ok">${vehicles.length}台</div></div>
+      <div class="card status-${groupStatus}">
+        <div class="card-top"><div class="card-title">${label}</div><div class="badge status-${groupStatus}">${vehicles.length}台</div></div>
         ${rowsHtml}
       </div>
     `;
