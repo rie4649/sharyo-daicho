@@ -142,6 +142,18 @@
   .btn-delete-inline { background: #fee2e2; color: #b91c1c; }
   .loading { text-align: center; padding: 40px; color: #9aa3af; }
 
+  /* デスクトップの広い画面で間延びしないよう最大幅を制限 */
+  .header-top, .main-tabs, .summary-bar, .toolbar-row, .company-count-bar,
+  .list, .master-sub-tabs, .master-panel, #areaGridViewByVehicle, #areaGridViewByArea {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .modal { max-width: 640px; margin-left: auto; margin-right: auto; }
+  @media (min-width: 700px) {
+    .fab { right: calc(50% - 320px + 20px); }
+  }
+
   .area-checkbox-grid {
     display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 10px;
     margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e0e6e4;
