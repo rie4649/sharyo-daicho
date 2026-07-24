@@ -132,13 +132,6 @@
   .field-row { display: flex; gap: 10px; }
   .field-row .field { flex: 1; }
   .field-hint { margin-top: 4px; color: #8b95a3; font-size: 12px; }
-  .waste-type-group { display: flex; gap: 8px; }
-  .waste-type-group label {
-    flex: 1; text-align: center; padding: 10px 4px; border: 1px solid #d1d9d7; border-radius: 8px;
-    font-size: 12.5px; cursor: pointer; background: #fff;
-  }
-  .waste-type-group input { display: none; }
-  .waste-type-group label.checked { border-color: #0f766e; background: #e6f4f2; color: #0f766e; font-weight: 700; }
   .card-cat {
     font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #e6f4f2; color: #0f766e;
     margin-top: 4px; display: inline-block;
@@ -292,6 +285,7 @@
     <div class="master-sub-tab active" data-master="maker">🏭 メーカー</div>
     <div class="master-sub-tab" data-master="insurance">🛡️ 保険会社</div>
     <div class="master-sub-tab" data-master="bodyShape">🚚 車体の形状</div>
+    <div class="master-sub-tab" data-master="wasteType">📁 許可の種類</div>
     <div class="master-sub-tab" data-master="area">🗺️ エリア</div>
   </div>
 
@@ -322,6 +316,15 @@
     <div class="add-master-form">
       <div class="field-row"><div class="field"><label>車体の形状名</label><input type="text" id="newBodyShape" placeholder="例：ダンプ"></div></div>
       <button type="button" class="submit-btn" id="addBodyShapeBtn">追加</button>
+    </div>
+  </div>
+
+  <!-- 許可の種類 -->
+  <div class="master-panel" id="masterPanel-wasteType">
+    <div id="wasteTypeList" style="margin-top:14px;"></div>
+    <div class="add-master-form">
+      <div class="field-row"><div class="field"><label>種類名</label><input type="text" id="newWasteType" placeholder="例：産業廃棄物収集運搬業"></div></div>
+      <button type="button" class="submit-btn" id="addWasteTypeBtn">追加</button>
     </div>
   </div>
 
@@ -409,11 +412,8 @@
       <input type="hidden" id="permitEditId">
       <div class="field">
         <label>種類</label>
-        <div class="waste-type-group" id="wasteTypeGroup">
-          <label class="checked"><input type="radio" name="wasteType" value="industrial" checked><span>産業廃棄物</span></label>
-          <label><input type="radio" name="wasteType" value="general"><span>一般廃棄物</span></label>
-          <label><input type="radio" name="wasteType" value="other"><span>その他</span></label>
-        </div>
+        <select id="wasteType"><option value="">選択してください</option></select>
+        <div class="field-hint">一覧にない場合は⚙️マスター管理タブの「許可の種類」から追加してください</div>
       </div>
       <div class="field">
         <label>エリア</label>
@@ -459,8 +459,10 @@ const AREA_COLLECTION = "managedAreas";
 const MAKER_COLLECTION = "vehicleMakers";
 const INSURER_COLLECTION = "insuranceCompanies";
 const BODYSHAPE_COLLECTION = "bodyShapes";
+const WASTETYPE_COLLECTION = "wasteTypes";
 
 const DEFAULT_BODY_SHAPES = ["平ボディ","ダンプ","アームロール","パッカー車","ウイング車","アルミバン","重機運搬車","その他"];
+const DEFAULT_WASTE_TYPES = ["産業廃棄物収集運搬業","産業廃棄物処分業","一般廃棄物収集運搬業","一般廃棄物処分業","特別管理産業廃棄物収集運搬業","その他"];
 
 const DEFAULT_AREAS = [
   { name: "長野県", type: "prefecture" }, { name: "群馬県", type: "prefecture" }, { name: "埼玉県", type: "prefecture" },
@@ -469,12 +471,13 @@ const DEFAULT_AREAS = [
   { name: "千曲市", type: "city" }, { name: "長野市", type: "city" }, { name: "中野市", type: "city" }
 ];
 
-let allVehicles = [], allPermits = [], allAreas = [], allMakers = [], allInsurers = [], allBodyShapes = [];
+let allVehicles = [], allPermits = [], allAreas = [], allMakers = [], allInsurers = [], allBodyShapes = [], allWasteTypes = [];
 let currentSearch = "", currentPermitSearch = "", currentAreaGridSearch = "";
 let expandedCompanyIds = new Set();
 let expandedVehicleIds = new Set();
 let areaSeeded = false;
 let bodyShapeSeeded = false;
+let wasteTypeSeeded = false;
 
 function getStatus(dateStr) {
   if (!dateStr) return null;
@@ -726,6 +729,20 @@ async function subscribeBodyShapes() {
     renderMasterItems("bodyShapeList", allBodyShapes, () => "", "deleteBodyShape", "まだ登録されていません");
   });
 }
+async function subscribeWasteTypes() {
+  db.collection(WASTETYPE_COLLECTION).onSnapshot(async snapshot => {
+    if (snapshot.empty && !wasteTypeSeeded) {
+      wasteTypeSeeded = true;
+      const batch = db.batch();
+      DEFAULT_WASTE_TYPES.forEach(name => batch.set(db.collection(WASTETYPE_COLLECTION).doc(), { name }));
+      await batch.commit();
+      return;
+    }
+    allWasteTypes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    populateWasteTypeSelect();
+    renderMasterItems("wasteTypeList", allWasteTypes, () => "", "deleteWasteType", "まだ登録されていません");
+  });
+}
 async function subscribeAreas() {
   db.collection(AREA_COLLECTION).onSnapshot(async snapshot => {
     if (snapshot.empty && !areaSeeded) {
@@ -918,18 +935,6 @@ vehicleFormEl.addEventListener("submit", async (e) => {
   } catch (err) { alert("保存エラー: " + err.message); }
 });
 
-document.querySelectorAll('#wasteTypeGroup input[name="wasteType"]').forEach(input => {
-  input.addEventListener("change", () => {
-    document.querySelectorAll('#wasteTypeGroup label').forEach(l => l.classList.remove("checked"));
-    input.closest("label").classList.add("checked");
-  });
-});
-function wasteTypeLabel(t) {
-  if (t === "industrial") return "産業廃棄物";
-  if (t === "general") return "一般廃棄物";
-  return "その他";
-}
-
 // ================= 許可証管理 =================
 function populatePermitAreaSelect(selectedArea) {
   const el = document.getElementById("permitArea");
@@ -962,7 +967,7 @@ function renderPermits() {
     return `
       <div class="card status-${status}">
         <div class="card-top">
-          <div><div class="card-title">${escapeHtml(p.area)}</div><div class="card-cat">${wasteTypeLabel(p.wasteType)}</div></div>
+          <div><div class="card-title">${escapeHtml(p.area)}</div>${p.wasteType ? `<div class="card-cat">${escapeHtml(p.wasteType)}</div>` : ""}</div>
           <div class="reorder-btns">
             <button class="reorder-btn" onclick="movePermit('${p.id}','up')">▲</button>
             <button class="reorder-btn" onclick="movePermit('${p.id}','down')">▼</button>
@@ -1014,9 +1019,7 @@ document.getElementById("addPermitBtn").addEventListener("click", () => {
   document.getElementById("permitModalTitle").textContent = "許可証を登録";
   document.getElementById("permitDeleteBtnInModal").style.display = "none";
   populatePermitAreaSelect("");
-  document.querySelectorAll('#wasteTypeGroup label').forEach(l => l.classList.remove("checked"));
-  document.querySelector('#wasteTypeGroup input[value="industrial"]').checked = true;
-  document.querySelector('#wasteTypeGroup input[value="industrial"]').closest("label").classList.add("checked");
+  populateWasteTypeSelect("");
   permitOverlay.classList.add("open");
 });
 document.getElementById("permitCancelBtn").addEventListener("click", () => permitOverlay.classList.remove("open"));
@@ -1027,10 +1030,7 @@ window.openEditPermit = function(id) {
   if (!p) return;
   document.getElementById("permitEditId").value = id;
   populatePermitAreaSelect(p.area || "");
-  const wt = p.wasteType || "industrial";
-  document.querySelectorAll('#wasteTypeGroup label').forEach(l => l.classList.remove("checked"));
-  const wtInput = document.querySelector(`#wasteTypeGroup input[value="${wt}"]`);
-  if (wtInput) { wtInput.checked = true; wtInput.closest("label").classList.add("checked"); }
+  populateWasteTypeSelect(p.wasteType || "");
   document.getElementById("permitNumber").value = p.permitNumber || "";
   document.getElementById("issueDate").value = p.issueDate || "";
   document.getElementById("expiryDate").value = p.expiryDate || "";
@@ -1055,7 +1055,7 @@ permitFormEl.addEventListener("submit", async (e) => {
   const id = document.getElementById("permitEditId").value;
   const data = {
     area: document.getElementById("permitArea").value,
-    wasteType: document.querySelector('#wasteTypeGroup input[name="wasteType"]:checked').value,
+    wasteType: document.getElementById("wasteType").value,
     permitNumber: document.getElementById("permitNumber").value.trim(),
     issueDate: document.getElementById("issueDate").value,
     expiryDate: document.getElementById("expiryDate").value,
@@ -1254,6 +1254,24 @@ document.getElementById("addBodyShapeBtn").addEventListener("click", async () =>
   document.getElementById("newBodyShape").value = "";
 });
 
+function populateWasteTypeSelect(selectedName) {
+  const el = document.getElementById("wasteType");
+  const current = selectedName !== undefined ? selectedName : el.value;
+  el.innerHTML = `<option value="">選択してください</option>` + allWasteTypes.map(w =>
+    `<option value="${escapeHtml(w.name)}" ${w.name===current?"selected":""}>${escapeHtml(w.name)}</option>`
+  ).join("");
+}
+window.deleteWasteType = function(id) {
+  if (!confirm("この種類を削除しますか？")) return;
+  db.collection(WASTETYPE_COLLECTION).doc(id).delete();
+};
+document.getElementById("addWasteTypeBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newWasteType").value.trim();
+  if (!name) { alert("種類名を入力してください"); return; }
+  await db.collection(WASTETYPE_COLLECTION).add({ name });
+  document.getElementById("newWasteType").value = "";
+});
+
 function renderAreaMasterLists() {
   const prefectures = allAreas.filter(a => a.type === "prefecture").sort((a,b)=>a.name.localeCompare(b.name));
   const cities = allAreas.filter(a => a.type === "city").sort((a,b)=>a.name.localeCompare(b.name));
@@ -1310,6 +1328,7 @@ subscribeAreas();
 subscribeMakers();
 subscribeInsurers();
 subscribeBodyShapes();
+subscribeWasteTypes();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
