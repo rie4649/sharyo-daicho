@@ -97,6 +97,16 @@
   .prow { font-size: 13px; color: #445c58; margin-top: 4px; display: flex; justify-content: space-between; }
   .prow .k { color: #7a8c89; }
   .card-notes { margin-top: 8px; font-size: 12.5px; color: #5a6b68; background: #f4f6f5; border-radius: 8px; padding: 6px 8px; }
+
+  .permit-type-list { margin-top: 6px; }
+  .permit-type-row {
+    border-top: 1px solid #eef1f3; padding: 10px 0;
+  }
+  .permit-type-row:first-child { border-top: none; padding-top: 0; }
+  .permit-type-row-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+  .permit-type-name { font-size: 14px; font-weight: 700; color: #1a2433; }
+  .permit-type-sub { font-size: 12px; color: #7a8996; margin-top: 3px; line-height: 1.5; }
+  .permit-type-row .card-actions { margin-top: 8px; }
   .vehicle-chips-section { margin-top: 10px; padding-top: 8px; border-top: 1px dashed #e0e6e4; }
   .vehicle-chips-label { font-size: 11.5px; font-weight: 700; color: #445c58; margin-bottom: 6px; }
   .vehicle-chips, .permit-chips { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -213,6 +223,7 @@
     <div class="main-tab" data-section="vehicleMonth">🗓️ 車検月別</div>
     <div class="main-tab" data-section="permit">📋 許可証管理</div>
     <div class="main-tab" data-section="areaGrid">🗺️ 許可車両管理</div>
+    <div class="main-tab" data-section="qualGrid">🎓 資格管理</div>
     <div class="main-tab" data-section="master">⚙️ マスター管理</div>
   </div>
 </header>
@@ -279,6 +290,15 @@
   </div>
 </div>
 
+<!-- ================= 資格管理セクション ================= -->
+<div class="section" id="section-qualGrid">
+  <div class="toolbar-row">
+    <div class="search-box"><input type="text" id="qualGridSearchInput" placeholder="従業員名で検索"></div>
+    <button class="jpeg-btn" id="jpegBtnQualGrid">🖨️ JPEG</button>
+  </div>
+  <div class="list" id="qualGridContainer"><div class="loading">読み込み中...</div></div>
+</div>
+
 <!-- ================= マスター管理セクション ================= -->
 <div class="section" id="section-master">
   <div class="master-sub-tabs">
@@ -287,6 +307,8 @@
     <div class="master-sub-tab" data-master="bodyShape">🚚 車体の形状</div>
     <div class="master-sub-tab" data-master="wasteType">📁 許可の種類</div>
     <div class="master-sub-tab" data-master="area">🗺️ エリア</div>
+    <div class="master-sub-tab" data-master="employee">👤 従業員</div>
+    <div class="master-sub-tab" data-master="qualification">📜 資格</div>
   </div>
 
   <!-- メーカー -->
@@ -347,6 +369,23 @@
         <div class="field-row"><div class="field"><label>市区町村名</label><input type="text" id="newCityArea" placeholder="例：千曲市"></div></div>
         <button type="button" class="submit-btn" id="addCityAreaBtn">追加</button>
       </div>
+    </div>
+  </div>
+  <!-- 従業員 -->
+  <div class="master-panel" id="masterPanel-employee">
+    <div id="employeeList" style="margin-top:14px;"></div>
+    <div class="add-master-form">
+      <div class="field-row"><div class="field"><label>従業員名</label><input type="text" id="newEmployeeName" placeholder="例：水谷さん"></div></div>
+      <button type="button" class="submit-btn" id="addEmployeeBtn">追加</button>
+    </div>
+  </div>
+
+  <!-- 資格 -->
+  <div class="master-panel" id="masterPanel-qualification">
+    <div id="qualificationList" style="margin-top:14px;"></div>
+    <div class="add-master-form">
+      <div class="field-row"><div class="field"><label>資格名</label><input type="text" id="newQualificationName" placeholder="例：大型自動車免許"></div></div>
+      <button type="button" class="submit-btn" id="addQualificationBtn">追加</button>
     </div>
   </div>
 </div>
@@ -460,6 +499,8 @@ const MAKER_COLLECTION = "vehicleMakers";
 const INSURER_COLLECTION = "insuranceCompanies";
 const BODYSHAPE_COLLECTION = "bodyShapes";
 const WASTETYPE_COLLECTION = "wasteTypes";
+const EMPLOYEE_COLLECTION = "employees";
+const QUALIFICATION_COLLECTION = "qualifications";
 
 const DEFAULT_BODY_SHAPES = ["平ボディ","ダンプ","アームロール","パッカー車","ウイング車","アルミバン","重機運搬車","その他"];
 const DEFAULT_WASTE_TYPES = ["産業廃棄物収集運搬業","産業廃棄物処分業","一般廃棄物収集運搬業","一般廃棄物処分業","特別管理産業廃棄物収集運搬業","その他"];
@@ -472,7 +513,8 @@ const DEFAULT_AREAS = [
 ];
 
 let allVehicles = [], allPermits = [], allAreas = [], allMakers = [], allInsurers = [], allBodyShapes = [], allWasteTypes = [];
-let currentSearch = "", currentPermitSearch = "", currentAreaGridSearch = "";
+let allEmployees = [], allQualifications = [];
+let currentSearch = "", currentPermitSearch = "", currentAreaGridSearch = "", currentQualGridSearch = "";
 let expandedCompanyIds = new Set();
 let expandedVehicleIds = new Set();
 let areaSeeded = false;
@@ -743,6 +785,42 @@ async function subscribeWasteTypes() {
     renderMasterItems("wasteTypeList", allWasteTypes, () => "", "deleteWasteType", "まだ登録されていません");
   });
 }
+function subscribeEmployees() {
+  db.collection(EMPLOYEE_COLLECTION).orderBy("name").onSnapshot(snapshot => {
+    allEmployees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderMasterItems("employeeList", allEmployees, () => "", "deleteEmployee", "まだ従業員が登録されていません");
+    renderQualGrid();
+  });
+}
+window.deleteEmployee = function(id) {
+  if (!confirm("この従業員を削除しますか？")) return;
+  db.collection(EMPLOYEE_COLLECTION).doc(id).delete();
+};
+document.getElementById("addEmployeeBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newEmployeeName").value.trim();
+  if (!name) { alert("従業員名を入力してください"); return; }
+  await db.collection(EMPLOYEE_COLLECTION).add({ name, qualifications: [] });
+  document.getElementById("newEmployeeName").value = "";
+});
+
+function subscribeQualifications() {
+  db.collection(QUALIFICATION_COLLECTION).orderBy("name").onSnapshot(snapshot => {
+    allQualifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    renderMasterItems("qualificationList", allQualifications, () => "", "deleteQualification", "まだ資格が登録されていません");
+    renderQualGrid();
+  });
+}
+window.deleteQualification = function(id) {
+  if (!confirm("この資格を削除しますか？")) return;
+  db.collection(QUALIFICATION_COLLECTION).doc(id).delete();
+};
+document.getElementById("addQualificationBtn").addEventListener("click", async () => {
+  const name = document.getElementById("newQualificationName").value.trim();
+  if (!name) { alert("資格名を入力してください"); return; }
+  await db.collection(QUALIFICATION_COLLECTION).add({ name });
+  document.getElementById("newQualificationName").value = "";
+});
+
 async function subscribeAreas() {
   db.collection(AREA_COLLECTION).onSnapshot(async snapshot => {
     if (snapshot.empty && !areaSeeded) {
@@ -949,42 +1027,87 @@ function renderPermits() {
   let filtered = allPermits;
   if (currentPermitSearch.trim()) {
     const q = currentPermitSearch.trim().toLowerCase();
-    filtered = filtered.filter(p => (p.area||"").toLowerCase().includes(q) || (p.permitNumber||"").toLowerCase().includes(q));
+    filtered = filtered.filter(p =>
+      (p.area||"").toLowerCase().includes(q) ||
+      (p.permitNumber||"").toLowerCase().includes(q) ||
+      (p.wasteType||"").toLowerCase().includes(q)
+    );
   }
   let warn = 0;
   allPermits.forEach(p => { const s = getStatus(p.expiryDate); if (s === "warn" || s === "expired") warn++; });
   document.getElementById("permitCountWarn").textContent = warn;
-  const permitOrderOf = (p) => (p.order !== undefined && p.order !== null) ? p.order : allPermits.indexOf(p);
-  filtered = [...filtered].sort((a,b) => permitOrderOf(a) - permitOrderOf(b));
+
   if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する許可証がありません</div>'; return; }
 
-  container.innerHTML = filtered.map(p => {
-    const status = getStatus(p.expiryDate);
-    const linkedVehicles = allVehicles.filter(v => (v.permittedAreas||[]).includes(p.area));
+  // エリアごとにグループ化
+  const groups = {};
+  filtered.forEach(p => {
+    const key = p.area || "未設定";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(p);
+  });
+
+  // グループの並び順は、マスター管理のエリア一覧の並び(都道府県→市区町村)に合わせる
+  const areaOrderIndex = {};
+  allAreas.forEach((a, i) => { areaOrderIndex[a.name] = i; });
+  const groupKeys = Object.keys(groups).sort((a,b) => {
+    const ia = areaOrderIndex[a] !== undefined ? areaOrderIndex[a] : 9999;
+    const ib = areaOrderIndex[b] !== undefined ? areaOrderIndex[b] : 9999;
+    if (ia !== ib) return ia - ib;
+    return a.localeCompare(b);
+  });
+
+  const permitOrderOf = (p) => (p.order !== undefined && p.order !== null) ? p.order : allPermits.indexOf(p);
+
+  container.innerHTML = groupKeys.map(areaName => {
+    const permits = groups[areaName].sort((a,b) => permitOrderOf(a) - permitOrderOf(b));
+
+    let groupStatus = "ok";
+    permits.forEach(p => {
+      const s = getStatus(p.expiryDate);
+      if (s === "expired") groupStatus = "expired";
+      else if (s === "warn" && groupStatus !== "expired") groupStatus = "warn";
+    });
+
+    const linkedVehicles = allVehicles.filter(v => (v.permittedAreas||[]).includes(areaName));
     const vehicleChipsHtml = linkedVehicles.length
       ? linkedVehicles.map(v => `<span class="vehicle-chip">${escapeHtml(v.nickname || "愛称未設定")} ・ ${escapeHtml(v.plateNumber||"")}</span>`).join("")
       : `<span class="vehicle-chip none">紐づく車両なし（許可車両管理タブでチェック）</span>`;
-    return `
-      <div class="card status-${status}">
-        <div class="card-top">
-          <div><div class="card-title">${escapeHtml(p.area)}</div>${p.wasteType ? `<div class="card-cat">${escapeHtml(p.wasteType)}</div>` : ""}</div>
-          <div class="reorder-btns">
-            <button class="reorder-btn" onclick="movePermit('${p.id}','up')">▲</button>
-            <button class="reorder-btn" onclick="movePermit('${p.id}','down')">▼</button>
+
+    const rowsHtml = permits.map(p => {
+      const status = getStatus(p.expiryDate);
+      return `
+        <div class="permit-type-row">
+          <div class="permit-type-row-top">
+            <div>
+              <div class="permit-type-name">${p.wasteType ? escapeHtml(p.wasteType) : "（種類未設定）"}</div>
+              <div class="permit-type-sub">許可番号 ${escapeHtml(p.permitNumber||"-")} ・ 取得日 ${formatDate(p.issueDate)} ・ 有効期限 ${formatDate(p.expiryDate)}</div>
+              ${p.notes ? `<div class="card-notes">${escapeHtml(p.notes)}</div>` : ""}
+            </div>
+            <div class="reorder-btns">
+              <button class="reorder-btn" onclick="movePermit('${p.id}','up')">▲</button>
+              <button class="reorder-btn" onclick="movePermit('${p.id}','down')">▼</button>
+            </div>
+            ${status !== "ok" ? `<div class="badge status-${status}">要更新</div>` : ""}
           </div>
-          ${status !== "ok" ? `<div class="badge status-${status}">要更新</div>` : ""}
+          <div class="card-actions">
+            <button class="btn-edit" onclick="openEditPermit('${p.id}')">編集</button>
+            <button class="btn-delete" onclick="deletePermit('${p.id}')">削除</button>
+          </div>
         </div>
-        <div class="prow"><span class="k">許可番号</span><span>${escapeHtml(p.permitNumber||"-")}</span></div>
-        <div class="prow"><span class="k">取得日</span><span>${formatDate(p.issueDate)}</span></div>
-        <div class="prow"><span class="k">有効期限</span><span>${formatDate(p.expiryDate)}</span></div>
-        ${p.notes ? `<div class="card-notes">${escapeHtml(p.notes)}</div>` : ""}
+      `;
+    }).join("");
+
+    return `
+      <div class="card status-${groupStatus}">
+        <div class="card-top">
+          <div class="card-title">${escapeHtml(areaName)}</div>
+          <div class="badge status-${groupStatus}">${permits.length}件</div>
+        </div>
+        <div class="permit-type-list">${rowsHtml}</div>
         <div class="vehicle-chips-section">
           <div class="vehicle-chips-label">許可登録車両一覧</div>
           <div class="permit-chips">${vehicleChipsHtml}</div>
-        </div>
-        <div class="card-actions">
-          <button class="btn-edit" onclick="openEditPermit('${p.id}')">編集</button>
-          <button class="btn-delete" onclick="deletePermit('${p.id}')">削除</button>
         </div>
       </div>
     `;
@@ -1199,6 +1322,52 @@ function renderAreaByArea() {
 document.getElementById("areaByAreaSearchInput").addEventListener("input", (e) => { currentAreaByAreaSearch = e.target.value; renderAreaByArea(); });
 document.getElementById("jpegBtnAreaByArea").addEventListener("click", () => exportAsJpeg("areaByAreaContainer", "エリア別許可車両.jpg"));
 
+// ================= 資格管理 =================
+function renderQualGrid() {
+  const container = document.getElementById("qualGridContainer");
+  if (!container) return;
+  let filtered = allEmployees;
+  if (currentQualGridSearch.trim()) {
+    const q = currentQualGridSearch.trim().toLowerCase();
+    filtered = filtered.filter(e => (e.name||"").toLowerCase().includes(q));
+  }
+  if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する従業員がいません</div>'; return; }
+  filtered = [...filtered].sort((a,b) => (a.name||"").localeCompare(b.name||""));
+
+  container.innerHTML = filtered.map(emp => {
+    const held = emp.qualifications || [];
+    const boxes = allQualifications.map(q => {
+      const checked = held.includes(q.name);
+      return `<label class="area-checkbox-item ${checked?"checked":""}">
+        <input type="checkbox" class="qual-checkbox" data-employee-id="${emp.id}" data-qual="${escapeHtml(q.name)}" ${checked?"checked":""}>
+        <span>${escapeHtml(q.name)}</span>
+      </label>`;
+    }).join("");
+    return `
+      <div class="card">
+        <div class="card-top"><div class="card-title">${escapeHtml(emp.name)}</div></div>
+        <div class="area-checkbox-grid">
+          ${allQualifications.length ? boxes : '<div class="area-group-label">資格がまだ登録されていません（マスター管理から追加してください）</div>'}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  document.querySelectorAll(".qual-checkbox").forEach(cb => {
+    cb.addEventListener("change", async (e) => {
+      const employeeId = e.target.dataset.employeeId, qual = e.target.dataset.qual;
+      const field = firebase.firestore.FieldValue;
+      try {
+        await db.collection(EMPLOYEE_COLLECTION).doc(employeeId).update({
+          qualifications: e.target.checked ? field.arrayUnion(qual) : field.arrayRemove(qual)
+        });
+      } catch (err) { alert("更新エラー: " + err.message); }
+    });
+  });
+}
+document.getElementById("qualGridSearchInput").addEventListener("input", (e) => { currentQualGridSearch = e.target.value; renderQualGrid(); });
+document.getElementById("jpegBtnQualGrid").addEventListener("click", () => exportAsJpeg("qualGridContainer", "資格管理.jpg"));
+
 // ================= マスター管理 =================
 function populateMakerSelect(selectedName) {
   const el = document.getElementById("companyName");
@@ -1329,6 +1498,8 @@ subscribeMakers();
 subscribeInsurers();
 subscribeBodyShapes();
 subscribeWasteTypes();
+subscribeEmployees();
+subscribeQualifications();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
