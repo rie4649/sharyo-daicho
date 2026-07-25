@@ -1062,20 +1062,19 @@ function renderPermits() {
     groups[key].push(p);
   });
 
-  // グループの並び順は、マスター管理のエリア一覧の並び(都道府県→市区町村)に合わせる
-  const areaOrderIndex = {};
-  allAreas.forEach((a, i) => { areaOrderIndex[a.name] = i; });
-  const groupKeys = Object.keys(groups).sort((a,b) => {
-    const ia = areaOrderIndex[a] !== undefined ? areaOrderIndex[a] : 9999;
-    const ib = areaOrderIndex[b] !== undefined ? areaOrderIndex[b] : 9999;
-    if (ia !== ib) return ia - ib;
-    return a.localeCompare(b);
-  });
-
-  const permitOrderOf = (p) => (p.order !== undefined && p.order !== null) ? p.order : allPermits.indexOf(p);
+  // グループの並び順は、グループ内で最も期限が近い許可証を基準にする
+  function nearestExpiry(permits) {
+    const dates = permits.map(p => p.expiryDate).filter(Boolean).map(d => new Date(d).getTime());
+    return dates.length ? Math.min(...dates) : Infinity;
+  }
+  const groupKeys = Object.keys(groups).sort((a,b) => nearestExpiry(groups[a]) - nearestExpiry(groups[b]));
 
   container.innerHTML = groupKeys.map(areaName => {
-    const permits = groups[areaName].sort((a,b) => permitOrderOf(a) - permitOrderOf(b));
+    const permits = groups[areaName].sort((a,b) => {
+      const da = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
+      const db_ = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
+      return da - db_;
+    });
 
     let groupStatus = "ok";
     permits.forEach(p => {
@@ -1098,10 +1097,6 @@ function renderPermits() {
               <div class="permit-type-name">${p.wasteType ? escapeHtml(p.wasteType) : "（種類未設定）"}</div>
               <div class="permit-type-sub">許可番号 ${escapeHtml(p.permitNumber||"-")} ・ 取得日 ${formatDate(p.issueDate)} ・ 有効期限 ${formatDate(p.expiryDate)}</div>
               ${p.notes ? `<div class="card-notes">${escapeHtml(p.notes)}</div>` : ""}
-            </div>
-            <div class="reorder-btns">
-              <button class="reorder-btn" onclick="movePermit('${p.id}','up')">▲</button>
-              <button class="reorder-btn" onclick="movePermit('${p.id}','down')">▼</button>
             </div>
             ${status !== "ok" ? `<div class="badge status-${status}">要更新</div>` : ""}
           </div>
@@ -1579,15 +1574,21 @@ document.getElementById("jpegBtnPermit").addEventListener("click", () => {
     const q = currentPermitSearch.trim().toLowerCase();
     list = list.filter(p => (p.area||"").toLowerCase().includes(q) || (p.permitNumber||"").toLowerCase().includes(q) || (p.wasteType||"").toLowerCase().includes(q));
   }
-  const areaOrderIndex = {};
-  allAreas.forEach((a, i) => { areaOrderIndex[a.name] = i; });
-  list.sort((a,b) => {
-    const ia = areaOrderIndex[a.area] !== undefined ? areaOrderIndex[a.area] : 9999;
-    const ib = areaOrderIndex[b.area] !== undefined ? areaOrderIndex[b.area] : 9999;
-    if (ia !== ib) return ia - ib;
-    const oa = (a.order !== undefined && a.order !== null) ? a.order : 0;
-    const ob = (b.order !== undefined && b.order !== null) ? b.order : 0;
-    return oa - ob;
+  const groupsByArea = {};
+  list.forEach(p => { const k = p.area || "未設定"; if (!groupsByArea[k]) groupsByArea[k] = []; groupsByArea[k].push(p); });
+  function nearestExpiry(permits) {
+    const dates = permits.map(p => p.expiryDate).filter(Boolean).map(d => new Date(d).getTime());
+    return dates.length ? Math.min(...dates) : Infinity;
+  }
+  const areaKeys = Object.keys(groupsByArea).sort((a,b) => nearestExpiry(groupsByArea[a]) - nearestExpiry(groupsByArea[b]));
+  list = [];
+  areaKeys.forEach(k => {
+    const sorted = groupsByArea[k].sort((a,b) => {
+      const da = a.expiryDate ? new Date(a.expiryDate).getTime() : Infinity;
+      const db_ = b.expiryDate ? new Date(b.expiryDate).getTime() : Infinity;
+      return da - db_;
+    });
+    list.push(...sorted);
   });
   const rows = list.map(p => [
     escapeHtml(p.area || "-"), escapeHtml(p.wasteType || "-"), escapeHtml(p.permitNumber || "-"),
