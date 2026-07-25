@@ -909,7 +909,22 @@ function renderVehiclesByMonth() {
   }).join("");
 }
 document.getElementById("monthSearchInput").addEventListener("input", (e) => { currentMonthSearch = e.target.value; renderVehiclesByMonth(); });
-document.getElementById("jpegBtnMonth").addEventListener("click", () => exportAsJpeg("monthListContainer", "車検月別一覧.jpg"));
+document.getElementById("jpegBtnMonth").addEventListener("click", () => {
+  let list = [...allVehicles];
+  if (currentMonthSearch.trim()) {
+    const q = currentMonthSearch.trim().toLowerCase();
+    list = list.filter(v => (v.nickname||"").toLowerCase().includes(q) || (v.plateNumber||"").toLowerCase().includes(q));
+  }
+  list.sort((a,b) => (a.shakenDate||"9999-99").localeCompare(b.shakenDate||"9999-99"));
+  const rows = list.map(v => {
+    const days = daysUntil(v.shakenDate);
+    return [
+      v.shakenDate ? v.shakenDate.slice(0,7) : "未設定", escapeHtml(v.nickname || "-"), escapeHtml(v.plateNumber || "-"),
+      v.shakenDate || "-", daysLabel(days)
+    ];
+  });
+  exportTableAsJpeg("車検月別一覧", ["月","愛称","車番","車検日","残り日数"], rows, "車検月別一覧");
+});
 
 function renderVehicleFormAreaCheckboxes(selectedAreas) {
   const selected = selectedAreas || [];
@@ -1320,7 +1335,24 @@ function renderAreaByArea() {
   }).join("");
 }
 document.getElementById("areaByAreaSearchInput").addEventListener("input", (e) => { currentAreaByAreaSearch = e.target.value; renderAreaByArea(); });
-document.getElementById("jpegBtnAreaByArea").addEventListener("click", () => exportAsJpeg("areaByAreaContainer", "エリア別許可車両.jpg"));
+document.getElementById("jpegBtnAreaByArea").addEventListener("click", () => {
+  let areas = [...allAreas];
+  if (currentAreaByAreaSearch.trim()) {
+    const q = currentAreaByAreaSearch.trim().toLowerCase();
+    areas = areas.filter(a => a.name.toLowerCase().includes(q));
+  }
+  const prefectures = areas.filter(a => a.type === "prefecture").sort((a,b)=>a.name.localeCompare(b.name));
+  const cities = areas.filter(a => a.type === "city").sort((a,b)=>a.name.localeCompare(b.name));
+  const ordered = [...prefectures, ...cities];
+  const rows = ordered.map(a => {
+    const vehicles = allVehicles.filter(v => (v.permittedAreas||[]).includes(a.name));
+    return [
+      escapeHtml(a.name), a.type === "prefecture" ? "都道府県" : "市区町村", String(vehicles.length) + "台",
+      escapeHtml(vehicles.map(v => v.nickname || v.plateNumber).join("・") || "-")
+    ];
+  });
+  exportTableAsJpeg("エリア別許可車両", ["エリア","種別","台数","車両一覧"], rows, "エリア別許可車両");
+});
 
 // ================= 資格管理 =================
 function renderQualGrid() {
@@ -1366,7 +1398,16 @@ function renderQualGrid() {
   });
 }
 document.getElementById("qualGridSearchInput").addEventListener("input", (e) => { currentQualGridSearch = e.target.value; renderQualGrid(); });
-document.getElementById("jpegBtnQualGrid").addEventListener("click", () => exportAsJpeg("qualGridContainer", "資格管理.jpg"));
+document.getElementById("jpegBtnQualGrid").addEventListener("click", () => {
+  let list = [...allEmployees];
+  if (currentQualGridSearch.trim()) {
+    const q = currentQualGridSearch.trim().toLowerCase();
+    list = list.filter(e => (e.name||"").toLowerCase().includes(q));
+  }
+  list.sort((a,b) => (a.name||"").localeCompare(b.name||""));
+  const rows = list.map(e => [escapeHtml(e.name || "-"), escapeHtml((e.qualifications||[]).join("・") || "-")]);
+  exportTableAsJpeg("資格管理", ["従業員","保有資格"], rows, "資格管理");
+});
 
 // ================= マスター管理 =================
 function populateMakerSelect(selectedName) {
@@ -1464,19 +1505,111 @@ document.getElementById("addCityAreaBtn").addEventListener("click", async () => 
   document.getElementById("newCityArea").value = "";
 });
 
-// ---- JPEG出力 ----
-async function exportAsJpeg(elementId, filename) {
-  const el = document.getElementById(elementId);
-  if (!el || !window.html2canvas) { alert("JPEG出力の準備中です。少し待ってから再度お試しください。"); return; }
-  const canvas = await html2canvas(el, { backgroundColor: "#f2f4f7", scale: 2 });
-  const link = document.createElement("a");
-  link.download = filename;
-  link.href = canvas.toDataURL("image/jpeg", 0.92);
-  link.click();
+// ---- JPEG出力（表形式・件数が多い場合はページ分割） ----
+function chunkRows(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
 }
-document.getElementById("jpegBtnVehicle").addEventListener("click", () => exportAsJpeg("listContainer", "車両台帳.jpg"));
-document.getElementById("jpegBtnPermit").addEventListener("click", () => exportAsJpeg("permitListContainer", "許可証一覧.jpg"));
-document.getElementById("jpegBtnAreaGrid").addEventListener("click", () => exportAsJpeg("areaGridContainer", "許可車両管理.jpg"));
+
+async function exportTableAsJpeg(title, columns, rows, filenameBase, rowsPerPage) {
+  if (!window.html2canvas) { alert("JPEG出力の準備中です。少し待ってから再度お試しください。"); return; }
+  if (!rows.length) { alert("出力するデータがありません。"); return; }
+  const perPage = rowsPerPage || 25;
+  const pages = chunkRows(rows, perPage);
+
+  for (let i = 0; i < pages.length; i++) {
+    const pageRows = pages[i];
+    const wrapper = document.createElement("div");
+    wrapper.style.position = "fixed";
+    wrapper.style.left = "-99999px";
+    wrapper.style.top = "0";
+    wrapper.style.background = "#ffffff";
+    wrapper.style.padding = "24px";
+    wrapper.style.fontFamily = "-apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic', sans-serif";
+
+    let html = `<div style="font-size:18px;font-weight:800;color:#1e3a5f;margin-bottom:4px;">${escapeHtml(title)}</div>`;
+    if (pages.length > 1) {
+      html += `<div style="font-size:12px;color:#8b95a3;margin-bottom:10px;">${i+1} / ${pages.length} ページ</div>`;
+    } else {
+      html += `<div style="margin-bottom:10px;"></div>`;
+    }
+    html += `<table style="border-collapse:collapse;width:${Math.max(700, columns.length * 150)}px;">`;
+    html += "<tr>" + columns.map(c => `<th style="border:1px solid #d4d9e0;padding:8px 10px;background:#1e3a5f;color:#fff;font-size:12.5px;text-align:left;white-space:nowrap;">${escapeHtml(c)}</th>`).join("") + "</tr>";
+    pageRows.forEach((row, idx) => {
+      html += `<tr style="background:${idx % 2 ? '#f4f6f9' : '#ffffff'};">` +
+        row.map(cell => `<td style="border:1px solid #e5e8ec;padding:7px 10px;font-size:12px;color:#1a2433;">${cell}</td>`).join("") +
+        "</tr>";
+    });
+    html += "</table>";
+    wrapper.innerHTML = html;
+    document.body.appendChild(wrapper);
+
+    try {
+      const canvas = await html2canvas(wrapper, { backgroundColor: "#ffffff", scale: 2 });
+      const link = document.createElement("a");
+      link.download = pages.length > 1 ? `${filenameBase}_${i+1}.jpg` : `${filenameBase}.jpg`;
+      link.href = canvas.toDataURL("image/jpeg", 0.92);
+      link.click();
+    } finally {
+      document.body.removeChild(wrapper);
+    }
+    if (i < pages.length - 1) await new Promise(r => setTimeout(r, 400));
+  }
+}
+
+document.getElementById("jpegBtnVehicle").addEventListener("click", () => {
+  let list = [...allVehicles];
+  if (currentSearch.trim()) {
+    const q = currentSearch.trim().toLowerCase();
+    list = list.filter(v => (v.companyName||"").toLowerCase().includes(q) || (v.nickname||"").toLowerCase().includes(q) || (v.plateNumber||"").toLowerCase().includes(q));
+  }
+  const vOrder = (v) => (v.order !== undefined && v.order !== null) ? v.order : allVehicles.indexOf(v);
+  list.sort((a,b) => vOrder(a) - vOrder(b));
+  const rows = list.map(v => [
+    escapeHtml(v.nickname || "-"), escapeHtml(v.plateNumber || "-"), escapeHtml(v.companyName || "-"),
+    v.shakenDate || "-", escapeHtml(v.insuranceCompany || "-"), escapeHtml((v.permittedAreas||[]).join("・") || "-")
+  ]);
+  exportTableAsJpeg("車両台帳", ["愛称","車番","メーカー","車検期限","保険会社","許可エリア"], rows, "車両台帳");
+});
+
+document.getElementById("jpegBtnPermit").addEventListener("click", () => {
+  let list = [...allPermits];
+  if (currentPermitSearch.trim()) {
+    const q = currentPermitSearch.trim().toLowerCase();
+    list = list.filter(p => (p.area||"").toLowerCase().includes(q) || (p.permitNumber||"").toLowerCase().includes(q) || (p.wasteType||"").toLowerCase().includes(q));
+  }
+  const areaOrderIndex = {};
+  allAreas.forEach((a, i) => { areaOrderIndex[a.name] = i; });
+  list.sort((a,b) => {
+    const ia = areaOrderIndex[a.area] !== undefined ? areaOrderIndex[a.area] : 9999;
+    const ib = areaOrderIndex[b.area] !== undefined ? areaOrderIndex[b.area] : 9999;
+    if (ia !== ib) return ia - ib;
+    const oa = (a.order !== undefined && a.order !== null) ? a.order : 0;
+    const ob = (b.order !== undefined && b.order !== null) ? b.order : 0;
+    return oa - ob;
+  });
+  const rows = list.map(p => [
+    escapeHtml(p.area || "-"), escapeHtml(p.wasteType || "-"), escapeHtml(p.permitNumber || "-"),
+    formatDate(p.issueDate), formatDate(p.expiryDate)
+  ]);
+  exportTableAsJpeg("許可証管理", ["エリア","種類","許可番号","取得日","有効期限"], rows, "許可証一覧");
+});
+
+document.getElementById("jpegBtnAreaGrid").addEventListener("click", () => {
+  let list = [...allVehicles];
+  if (currentAreaGridSearch.trim()) {
+    const q = currentAreaGridSearch.trim().toLowerCase();
+    list = list.filter(v => (v.nickname||"").toLowerCase().includes(q) || (v.plateNumber||"").toLowerCase().includes(q));
+  }
+  const vOrder = (v) => (v.order !== undefined && v.order !== null) ? v.order : allVehicles.indexOf(v);
+  list.sort((a,b) => vOrder(a) - vOrder(b));
+  const rows = list.map(v => [
+    escapeHtml(v.nickname || v.plateNumber || "-"), escapeHtml(v.plateNumber || "-"),
+    escapeHtml((v.permittedAreas||[]).join("・") || "許可エリアなし")
+  ]);
+  exportTableAsJpeg("許可車両管理", ["愛称","車番","許可エリア"], rows, "許可車両管理");
+});
 
 // ---- ホーム画面に追加(PWAインストール) ----
 let deferredInstallPrompt = null;
