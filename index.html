@@ -566,6 +566,13 @@ function escapeHtml(str) {
 }
 function fmtNum(n) { if (n === undefined || n === null || n === "") return "-"; return Number(n).toLocaleString() + " kg"; }
 function formatDate(d) { return d || "-"; }
+function qualDetailsText(d) {
+  const parts = [];
+  if (d.number) parts.push(`番号 ${escapeHtml(d.number)}`);
+  if (d.acquiredDate) parts.push(`取得 ${d.acquiredDate}`);
+  if (d.expiryDate) parts.push(`期限 ${d.expiryDate}`);
+  return parts.join(" ／ ");
+}
 
 // ---- 共通: マスターアイテムの一覧描画 ----
 function renderMasterItems(containerId, items, subTextFn, onDeleteFnName, emptyMsg, moveFnName) {
@@ -1551,10 +1558,11 @@ function renderQualByQual() {
       const status = d.expiryDate ? (getStatus(d.expiryDate) || "ok") : null;
       if (status === "expired") groupStatus = "expired";
       else if (status === "warn" && groupStatus !== "expired") groupStatus = "warn";
+      const detailsText = qualDetailsText(d);
       return `
         <div class="prow">
           <span class="k">${escapeHtml(e.name)}</span>
-          <span>番号 ${escapeHtml(d.number || "-")} ／ 取得 ${d.acquiredDate || "-"} ／ 期限 ${d.expiryDate || "-"} ${status && status !== "ok" ? `<span class="badge status-${status}" style="margin-left:6px;">要更新</span>` : ""}</span>
+          <span>${detailsText || "詳細未入力"} ${status && status !== "ok" ? `<span class="badge status-${status}" style="margin-left:6px;">要更新</span>` : ""}</span>
         </div>
       `;
     }).join("") : `<div class="vehicle-chip none">保有している従業員なし</div>`;
@@ -1576,10 +1584,10 @@ document.getElementById("jpegBtnQualByQual").addEventListener("click", () => {
   const rows = [];
   quals.forEach(q => {
     const holders = allEmployees.filter(e => (e.qualifications||[]).includes(q.name));
-    if (holders.length === 0) { rows.push([escapeHtml(q.name), "-", "-", "-", "-"]); return; }
+    if (holders.length === 0) { rows.push([escapeHtml(q.name), "-", "", "", ""]); return; }
     holders.forEach(e => {
       const d = (e.qualificationDates || {})[q.name] || {};
-      rows.push([escapeHtml(q.name), escapeHtml(e.name), escapeHtml(d.number || "-"), d.acquiredDate || "-", d.expiryDate || "-"]);
+      rows.push([escapeHtml(q.name), escapeHtml(e.name), escapeHtml(d.number || ""), d.acquiredDate || "", d.expiryDate || ""]);
     });
   });
   exportTableAsJpeg("資格別取得者一覧", ["資格","従業員","資格番号","取得日","有効期限"], rows, "資格別取得者一覧");
@@ -1595,7 +1603,7 @@ document.getElementById("jpegBtnQualGrid").addEventListener("click", () => {
     const dates = e.qualificationDates || {};
     const quals = (e.qualifications||[]).map(qn => {
       const d = dates[qn] || {};
-      return `${qn}${d.number ? "("+d.number+")" : ""}`;
+      return d.number ? `${qn}(${d.number})` : qn;
     }).join("・");
     return [escapeHtml(e.name || "-"), escapeHtml(quals || "-")];
   });
