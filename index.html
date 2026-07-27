@@ -177,6 +177,20 @@
   .area-checkbox-item input { width: auto; }
   .area-group-label { grid-column: 1 / -1; font-size: 11px; color: #8b95a3; font-weight: 700; margin-top: 4px; }
 
+  .qual-list { margin-top: 10px; padding-top: 10px; border-top: 1px dashed #e0e6e4; display: flex; flex-direction: column; gap: 4px; }
+  .qual-row { padding: 4px 0; }
+  .qual-row .area-checkbox-item { width: 100%; justify-content: flex-start; }
+  .qual-dates-row { display: flex; gap: 8px; margin-top: 6px; padding-left: 4px; }
+  .qual-dates-row .field { flex: 1; margin-bottom: 0; }
+  .qual-dates-row label { font-size: 11px; color: #8b95a3; margin-bottom: 2px; }
+  .qual-dates-row input { padding: 6px 8px; font-size: 12.5px; }
+  .qual-held-top { display: flex; justify-content: space-between; align-items: center; }
+  .qual-held-name { font-size: 14px; font-weight: 700; color: #1a2433; }
+  .qual-add-row { display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #e0e6e4; }
+  .qual-add-select {
+    flex: 1; padding: 8px 10px; border: 1px solid #d4d9e0; border-radius: 8px; font-size: 13px; background: #fff;
+  }
+
   /* マスター管理 共通スタイル */
   .master-sub-tabs { display: flex; gap: 8px; padding: 14px 16px 0; }
   .master-sub-tab {
@@ -293,11 +307,26 @@
 
 <!-- ================= 資格管理セクション ================= -->
 <div class="section" id="section-qualGrid">
-  <div class="toolbar-row">
-    <div class="search-box"><input type="text" id="qualGridSearchInput" placeholder="従業員名で検索"></div>
-    <button class="jpeg-btn" id="jpegBtnQualGrid">🖨️ JPEG</button>
+  <div class="master-sub-tabs">
+    <div class="master-sub-tab active" data-qualview="byEmployee">👤 従業員ごと</div>
+    <div class="master-sub-tab" data-qualview="byQual">📜 資格ごと</div>
   </div>
-  <div class="list" id="qualGridContainer"><div class="loading">読み込み中...</div></div>
+
+  <div id="qualViewByEmployee">
+    <div class="toolbar-row">
+      <div class="search-box"><input type="text" id="qualGridSearchInput" placeholder="従業員名で検索"></div>
+      <button class="jpeg-btn" id="jpegBtnQualGrid">🖨️ JPEG</button>
+    </div>
+    <div class="list" id="qualGridContainer"><div class="loading">読み込み中...</div></div>
+  </div>
+
+  <div id="qualViewByQual" style="display:none;">
+    <div class="toolbar-row">
+      <div class="search-box"><input type="text" id="qualByQualSearchInput" placeholder="資格名で検索"></div>
+      <button class="jpeg-btn" id="jpegBtnQualByQual">🖨️ JPEG</button>
+    </div>
+    <div class="list" id="qualByQualContainer"><div class="loading">読み込み中...</div></div>
+  </div>
 </div>
 
 <!-- ================= マスター管理セクション ================= -->
@@ -801,6 +830,7 @@ function subscribeEmployees() {
     allEmployees.sort((a,b) => eOrder(a) - eOrder(b));
     renderMasterItems("employeeList", allEmployees, () => "", "deleteEmployee", "まだ従業員が登録されていません", "moveEmployee");
     renderQualGrid();
+    renderQualByQual();
   });
 }
 window.deleteEmployee = function(id) {
@@ -836,6 +866,7 @@ function subscribeQualifications() {
     allQualifications.sort((a,b) => qOrder(a) - qOrder(b));
     renderMasterItems("qualificationList", allQualifications, () => "", "deleteQualification", "まだ資格が登録されていません", "moveQualification");
     renderQualGrid();
+    renderQualByQual();
   });
 }
 window.deleteQualification = function(id) {
@@ -1393,6 +1424,17 @@ document.getElementById("jpegBtnAreaByArea").addEventListener("click", () => {
 });
 
 // ================= 資格管理 =================
+document.querySelectorAll('#section-qualGrid .master-sub-tab').forEach(tab => {
+  tab.addEventListener("click", () => {
+    document.querySelectorAll('#section-qualGrid .master-sub-tab').forEach(t => t.classList.remove("active"));
+    tab.classList.add("active");
+    const isByEmployee = tab.dataset.qualview === "byEmployee";
+    document.getElementById("qualViewByEmployee").style.display = isByEmployee ? "block" : "none";
+    document.getElementById("qualViewByQual").style.display = isByEmployee ? "none" : "block";
+    if (!isByEmployee) renderQualByQual();
+  });
+});
+
 function renderQualGrid() {
   const container = document.getElementById("qualGridContainer");
   if (!container) return;
@@ -1405,44 +1447,159 @@ function renderQualGrid() {
 
   container.innerHTML = filtered.map(emp => {
     const held = emp.qualifications || [];
-    const boxes = allQualifications.map(q => {
-      const checked = held.includes(q.name);
-      return `<label class="area-checkbox-item ${checked?"checked":""}">
-        <input type="checkbox" class="qual-checkbox" data-employee-id="${emp.id}" data-qual="${escapeHtml(q.name)}" ${checked?"checked":""}>
-        <span>${escapeHtml(q.name)}</span>
-      </label>`;
-    }).join("");
+    const dates = emp.qualificationDates || {};
+    const unheld = allQualifications.filter(q => !held.includes(q.name));
+
+    const rows = held.length ? held.map(qualName => {
+      const d = dates[qualName] || {};
+      const status = d.expiryDate ? (getStatus(d.expiryDate) || "ok") : null;
+      return `
+        <div class="qual-row">
+          <div class="qual-held-top">
+            <div class="qual-held-name">${escapeHtml(qualName)}</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              ${status && status !== "ok" ? `<span class="badge status-${status}">要更新</span>` : ""}
+              <button class="reorder-btn" style="width:auto;padding:0 8px;color:#b91c1c;" onclick="removeQualFromEmployee('${emp.id}','${escapeHtml(qualName)}')">削除</button>
+            </div>
+          </div>
+          <div class="qual-dates-row">
+            <div class="field">
+              <label>資格番号</label>
+              <input type="text" class="qual-date-input" data-employee-id="${emp.id}" data-qual="${escapeHtml(qualName)}" data-field="number" value="${escapeHtml(d.number||'')}" placeholder="資格番号">
+            </div>
+            <div class="field">
+              <label>取得日</label>
+              <input type="date" class="qual-date-input" data-employee-id="${emp.id}" data-qual="${escapeHtml(qualName)}" data-field="acquiredDate" value="${d.acquiredDate||''}">
+            </div>
+            <div class="field">
+              <label>有効期限</label>
+              <input type="date" class="qual-date-input" data-employee-id="${emp.id}" data-qual="${escapeHtml(qualName)}" data-field="expiryDate" value="${d.expiryDate||''}">
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("") : `<div class="empty-state" style="padding:14px;">まだ資格が登録されていません</div>`;
+
+    const addSelectHtml = unheld.length ? `
+      <div class="qual-add-row">
+        <select class="qual-add-select" id="qualAddSelect-${emp.id}">
+          <option value="">資格を選択</option>
+          ${unheld.map(q => `<option value="${escapeHtml(q.name)}">${escapeHtml(q.name)}</option>`).join("")}
+        </select>
+        <button class="jpeg-btn" style="height:38px;" onclick="addQualToEmployee('${emp.id}')">追加</button>
+      </div>
+    ` : (allQualifications.length === 0 ? `<div class="field-hint">資格がまだ登録されていません（マスター管理から追加してください）</div>` : "");
+
     return `
       <div class="card">
         <div class="card-top"><div class="card-title">${escapeHtml(emp.name)}</div></div>
-        <div class="area-checkbox-grid">
-          ${allQualifications.length ? boxes : '<div class="area-group-label">資格がまだ登録されていません（マスター管理から追加してください）</div>'}
-        </div>
+        <div class="qual-list">${rows}</div>
+        ${addSelectHtml}
       </div>
     `;
   }).join("");
 
-  document.querySelectorAll(".qual-checkbox").forEach(cb => {
-    cb.addEventListener("change", async (e) => {
-      const employeeId = e.target.dataset.employeeId, qual = e.target.dataset.qual;
-      const field = firebase.firestore.FieldValue;
+  document.querySelectorAll(".qual-date-input").forEach(inp => {
+    inp.addEventListener("change", async (e) => {
+      const employeeId = e.target.dataset.employeeId, qual = e.target.dataset.qual, field = e.target.dataset.field;
       try {
         await db.collection(EMPLOYEE_COLLECTION).doc(employeeId).update({
-          qualifications: e.target.checked ? field.arrayUnion(qual) : field.arrayRemove(qual)
+          [`qualificationDates.${qual}.${field}`]: e.target.value
         });
       } catch (err) { alert("更新エラー: " + err.message); }
     });
   });
 }
+
+window.addQualToEmployee = async function(employeeId) {
+  const select = document.getElementById(`qualAddSelect-${employeeId}`);
+  const qualName = select.value;
+  if (!qualName) { alert("資格を選択してください"); return; }
+  try {
+    await db.collection(EMPLOYEE_COLLECTION).doc(employeeId).update({
+      qualifications: firebase.firestore.FieldValue.arrayUnion(qualName)
+    });
+  } catch (err) { alert("追加エラー: " + err.message); }
+};
+window.removeQualFromEmployee = async function(employeeId, qualName) {
+  if (!confirm(`「${qualName}」を削除しますか？`)) return;
+  try {
+    await db.collection(EMPLOYEE_COLLECTION).doc(employeeId).update({
+      qualifications: firebase.firestore.FieldValue.arrayRemove(qualName),
+      [`qualificationDates.${qualName}`]: firebase.firestore.FieldValue.delete()
+    });
+  } catch (err) { alert("削除エラー: " + err.message); }
+};
 document.getElementById("qualGridSearchInput").addEventListener("input", (e) => { currentQualGridSearch = e.target.value; renderQualGrid(); });
+
+let currentQualByQualSearch = "";
+function renderQualByQual() {
+  const container = document.getElementById("qualByQualContainer");
+  if (!container) return;
+  let quals = allQualifications;
+  if (currentQualByQualSearch.trim()) {
+    const q = currentQualByQualSearch.trim().toLowerCase();
+    quals = quals.filter(q2 => (q2.name||"").toLowerCase().includes(q));
+  }
+  if (quals.length === 0) { container.innerHTML = '<div class="empty-state">該当する資格がありません</div>'; return; }
+
+  container.innerHTML = quals.map(q => {
+    const holders = allEmployees.filter(e => (e.qualifications||[]).includes(q.name));
+    let groupStatus = "ok";
+    const rowsHtml = holders.length ? holders.map(e => {
+      const d = (e.qualificationDates || {})[q.name] || {};
+      const status = d.expiryDate ? (getStatus(d.expiryDate) || "ok") : null;
+      if (status === "expired") groupStatus = "expired";
+      else if (status === "warn" && groupStatus !== "expired") groupStatus = "warn";
+      return `
+        <div class="prow">
+          <span class="k">${escapeHtml(e.name)}</span>
+          <span>番号 ${escapeHtml(d.number || "-")} ／ 取得 ${d.acquiredDate || "-"} ／ 期限 ${d.expiryDate || "-"} ${status && status !== "ok" ? `<span class="badge status-${status}" style="margin-left:6px;">要更新</span>` : ""}</span>
+        </div>
+      `;
+    }).join("") : `<div class="vehicle-chip none">保有している従業員なし</div>`;
+    return `
+      <div class="card status-${groupStatus}">
+        <div class="card-top"><div class="card-title">${escapeHtml(q.name)}</div><div class="badge status-${groupStatus}">${holders.length}名</div></div>
+        ${rowsHtml}
+      </div>
+    `;
+  }).join("");
+}
+document.getElementById("qualByQualSearchInput").addEventListener("input", (e) => { currentQualByQualSearch = e.target.value; renderQualByQual(); });
+document.getElementById("jpegBtnQualByQual").addEventListener("click", () => {
+  let quals = [...allQualifications];
+  if (currentQualByQualSearch.trim()) {
+    const q = currentQualByQualSearch.trim().toLowerCase();
+    quals = quals.filter(q2 => (q2.name||"").toLowerCase().includes(q));
+  }
+  const rows = [];
+  quals.forEach(q => {
+    const holders = allEmployees.filter(e => (e.qualifications||[]).includes(q.name));
+    if (holders.length === 0) { rows.push([escapeHtml(q.name), "-", "-", "-", "-"]); return; }
+    holders.forEach(e => {
+      const d = (e.qualificationDates || {})[q.name] || {};
+      rows.push([escapeHtml(q.name), escapeHtml(e.name), escapeHtml(d.number || "-"), d.acquiredDate || "-", d.expiryDate || "-"]);
+    });
+  });
+  exportTableAsJpeg("資格別取得者一覧", ["資格","従業員","資格番号","取得日","有効期限"], rows, "資格別取得者一覧");
+});
+
 document.getElementById("jpegBtnQualGrid").addEventListener("click", () => {
   let list = [...allEmployees];
   if (currentQualGridSearch.trim()) {
     const q = currentQualGridSearch.trim().toLowerCase();
     list = list.filter(e => (e.name||"").toLowerCase().includes(q));
   }
-  const rows = list.map(e => [escapeHtml(e.name || "-"), escapeHtml((e.qualifications||[]).join("・") || "-")]);
-  exportTableAsJpeg("資格管理", ["従業員","保有資格"], rows, "資格管理");
+  const rows = list.map(e => {
+    const dates = e.qualificationDates || {};
+    const quals = (e.qualifications||[]).map(qn => {
+      const d = dates[qn] || {};
+      return `${qn}${d.number ? "("+d.number+")" : ""}`;
+    }).join("・");
+    return [escapeHtml(e.name || "-"), escapeHtml(quals || "-")];
+  });
+  exportTableAsJpeg("資格管理", ["従業員","保有資格（番号）"], rows, "資格管理");
 });
 
 // ================= マスター管理 =================
