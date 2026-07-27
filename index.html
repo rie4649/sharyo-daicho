@@ -186,6 +186,7 @@
   .qual-dates-row input { padding: 6px 8px; font-size: 12.5px; }
   .qual-held-top { display: flex; justify-content: space-between; align-items: center; }
   .qual-held-name { font-size: 14px; font-weight: 700; color: #1a2433; }
+  .qual-details-text { font-size: 12.5px; color: #7a8996; margin-top: 4px; }
   .qual-add-row { display: flex; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed #e0e6e4; }
   .qual-add-select {
     flex: 1; padding: 8px 10px; border: 1px solid #d4d9e0; border-radius: 8px; font-size: 13px; background: #fff;
@@ -1442,6 +1443,12 @@ document.querySelectorAll('#section-qualGrid .master-sub-tab').forEach(tab => {
   });
 });
 
+let expandedQualEdits = new Set();
+window.toggleQualEdit = function(key) {
+  if (expandedQualEdits.has(key)) { expandedQualEdits.delete(key); } else { expandedQualEdits.add(key); }
+  renderQualGrid();
+};
+
 function renderQualGrid() {
   const container = document.getElementById("qualGridContainer");
   if (!container) return;
@@ -1460,29 +1467,36 @@ function renderQualGrid() {
     const rows = held.length ? held.map(qualName => {
       const d = dates[qualName] || {};
       const status = d.expiryDate ? (getStatus(d.expiryDate) || "ok") : null;
+      const editKey = `${emp.id}__${qualName}`;
+      const isEditing = expandedQualEdits.has(editKey);
+      const detailsText = qualDetailsText(d);
+
       return `
         <div class="qual-row">
           <div class="qual-held-top">
             <div class="qual-held-name">${escapeHtml(qualName)}</div>
             <div style="display:flex;align-items:center;gap:6px;">
               ${status && status !== "ok" ? `<span class="badge status-${status}">要更新</span>` : ""}
+              <button class="reorder-btn" style="width:auto;padding:0 8px;" onclick="toggleQualEdit('${editKey}')">${isEditing ? "閉じる" : "編集"}</button>
               <button class="reorder-btn" style="width:auto;padding:0 8px;color:#b91c1c;" onclick="removeQualFromEmployee('${emp.id}','${escapeHtml(qualName)}')">削除</button>
             </div>
           </div>
-          <div class="qual-dates-row">
-            <div class="field">
-              <label>資格番号</label>
-              <input type="text" class="qual-date-input" data-employee-id="${emp.id}" data-qual="${escapeHtml(qualName)}" data-field="number" value="${escapeHtml(d.number||'')}" placeholder="資格番号">
+          ${isEditing ? `
+            <div class="qual-dates-row">
+              <div class="field">
+                <label>資格番号</label>
+                <input type="text" class="qual-date-input" data-employee-id="${emp.id}" data-qual="${escapeHtml(qualName)}" data-field="number" value="${escapeHtml(d.number||'')}" placeholder="資格番号">
+              </div>
+              <div class="field">
+                <label>取得日</label>
+                <input type="date" class="qual-date-input" data-employee-id="${emp.id}" data-qual="${escapeHtml(qualName)}" data-field="acquiredDate" value="${d.acquiredDate||''}">
+              </div>
+              <div class="field">
+                <label>有効期限</label>
+                <input type="date" class="qual-date-input" data-employee-id="${emp.id}" data-qual="${escapeHtml(qualName)}" data-field="expiryDate" value="${d.expiryDate||''}">
+              </div>
             </div>
-            <div class="field">
-              <label>取得日</label>
-              <input type="date" class="qual-date-input" data-employee-id="${emp.id}" data-qual="${escapeHtml(qualName)}" data-field="acquiredDate" value="${d.acquiredDate||''}">
-            </div>
-            <div class="field">
-              <label>有効期限</label>
-              <input type="date" class="qual-date-input" data-employee-id="${emp.id}" data-qual="${escapeHtml(qualName)}" data-field="expiryDate" value="${d.expiryDate||''}">
-            </div>
-          </div>
+          ` : (detailsText ? `<div class="qual-details-text">${detailsText}</div>` : "")}
         </div>
       `;
     }).join("") : `<div class="empty-state" style="padding:14px;">まだ資格が登録されていません</div>`;
