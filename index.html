@@ -202,6 +202,7 @@
   .master-item-info { font-size: 13.5px; }
   .master-item-info .name { font-weight: 700; }
   .master-item-info .sub { font-size: 11.5px; color: #8b95a3; margin-top: 2px; }
+  .master-item-actions { display: flex; align-items: center; }
   .master-item-actions button { border: none; border-radius: 6px; padding: 5px 9px; font-size: 12px; cursor: pointer; background: #fee2e2; color: #b91c1c; }
   .add-master-form { background: #fff; border: 1px dashed #d4d9e0; border-radius: 10px; padding: 12px; margin: 12px 0 20px; }
   .add-master-form .field-row { margin-bottom: 8px; }
@@ -538,7 +539,7 @@ function fmtNum(n) { if (n === undefined || n === null || n === "") return "-"; 
 function formatDate(d) { return d || "-"; }
 
 // ---- 共通: マスターアイテムの一覧描画 ----
-function renderMasterItems(containerId, items, subTextFn, onDeleteFnName, emptyMsg) {
+function renderMasterItems(containerId, items, subTextFn, onDeleteFnName, emptyMsg, moveFnName) {
   const el = document.getElementById(containerId);
   if (!items.length) { el.innerHTML = `<div class="empty-state" style="padding:14px;">${emptyMsg}</div>`; return; }
   el.innerHTML = items.map(item => `
@@ -547,7 +548,15 @@ function renderMasterItems(containerId, items, subTextFn, onDeleteFnName, emptyM
         <div class="name">${escapeHtml(item.name)}</div>
         <div class="sub">${subTextFn(item)}</div>
       </div>
-      <div class="master-item-actions"><button onclick="${onDeleteFnName}('${item.id}')">削除</button></div>
+      <div class="master-item-actions">
+        ${moveFnName ? `
+          <div class="reorder-btns" style="margin-right:6px;">
+            <button class="reorder-btn" onclick="${moveFnName}('${item.id}','up')">▲</button>
+            <button class="reorder-btn" onclick="${moveFnName}('${item.id}','down')">▼</button>
+          </div>
+        ` : ""}
+        <button onclick="${onDeleteFnName}('${item.id}')">削除</button>
+      </div>
     </div>
   `).join("");
 }
@@ -786,9 +795,11 @@ async function subscribeWasteTypes() {
   });
 }
 function subscribeEmployees() {
-  db.collection(EMPLOYEE_COLLECTION).orderBy("name").onSnapshot(snapshot => {
+  db.collection(EMPLOYEE_COLLECTION).onSnapshot(snapshot => {
     allEmployees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderMasterItems("employeeList", allEmployees, () => "", "deleteEmployee", "まだ従業員が登録されていません");
+    const eOrder = (e) => (e.order !== undefined && e.order !== null) ? e.order : allEmployees.indexOf(e);
+    allEmployees.sort((a,b) => eOrder(a) - eOrder(b));
+    renderMasterItems("employeeList", allEmployees, () => "", "deleteEmployee", "まだ従業員が登録されていません", "moveEmployee");
     renderQualGrid();
   });
 }
@@ -796,17 +807,34 @@ window.deleteEmployee = function(id) {
   if (!confirm("この従業員を削除しますか？")) return;
   db.collection(EMPLOYEE_COLLECTION).doc(id).delete();
 };
+window.moveEmployee = async function(id, direction) {
+  const idx = allEmployees.findIndex(e => e.id === id);
+  const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (idx === -1 || swapIdx < 0 || swapIdx >= allEmployees.length) return;
+  const a = allEmployees[idx], b = allEmployees[swapIdx];
+  const aOrder = (a.order !== undefined && a.order !== null) ? a.order : idx;
+  const bOrder = (b.order !== undefined && b.order !== null) ? b.order : swapIdx;
+  try {
+    const batch = db.batch();
+    batch.update(db.collection(EMPLOYEE_COLLECTION).doc(a.id), { order: bOrder });
+    batch.update(db.collection(EMPLOYEE_COLLECTION).doc(b.id), { order: aOrder });
+    await batch.commit();
+  } catch (err) { alert("並び替えエラー: " + err.message); }
+};
 document.getElementById("addEmployeeBtn").addEventListener("click", async () => {
   const name = document.getElementById("newEmployeeName").value.trim();
   if (!name) { alert("従業員名を入力してください"); return; }
-  await db.collection(EMPLOYEE_COLLECTION).add({ name, qualifications: [] });
+  const maxOrder = allEmployees.reduce((max, e) => Math.max(max, (e.order !== undefined && e.order !== null) ? e.order : 0), 0);
+  await db.collection(EMPLOYEE_COLLECTION).add({ name, qualifications: [], order: maxOrder + 1 });
   document.getElementById("newEmployeeName").value = "";
 });
 
 function subscribeQualifications() {
-  db.collection(QUALIFICATION_COLLECTION).orderBy("name").onSnapshot(snapshot => {
+  db.collection(QUALIFICATION_COLLECTION).onSnapshot(snapshot => {
     allQualifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    renderMasterItems("qualificationList", allQualifications, () => "", "deleteQualification", "まだ資格が登録されていません");
+    const qOrder = (q) => (q.order !== undefined && q.order !== null) ? q.order : allQualifications.indexOf(q);
+    allQualifications.sort((a,b) => qOrder(a) - qOrder(b));
+    renderMasterItems("qualificationList", allQualifications, () => "", "deleteQualification", "まだ資格が登録されていません", "moveQualification");
     renderQualGrid();
   });
 }
@@ -814,10 +842,25 @@ window.deleteQualification = function(id) {
   if (!confirm("この資格を削除しますか？")) return;
   db.collection(QUALIFICATION_COLLECTION).doc(id).delete();
 };
+window.moveQualification = async function(id, direction) {
+  const idx = allQualifications.findIndex(q => q.id === id);
+  const swapIdx = direction === "up" ? idx - 1 : idx + 1;
+  if (idx === -1 || swapIdx < 0 || swapIdx >= allQualifications.length) return;
+  const a = allQualifications[idx], b = allQualifications[swapIdx];
+  const aOrder = (a.order !== undefined && a.order !== null) ? a.order : idx;
+  const bOrder = (b.order !== undefined && b.order !== null) ? b.order : swapIdx;
+  try {
+    const batch = db.batch();
+    batch.update(db.collection(QUALIFICATION_COLLECTION).doc(a.id), { order: bOrder });
+    batch.update(db.collection(QUALIFICATION_COLLECTION).doc(b.id), { order: aOrder });
+    await batch.commit();
+  } catch (err) { alert("並び替えエラー: " + err.message); }
+};
 document.getElementById("addQualificationBtn").addEventListener("click", async () => {
   const name = document.getElementById("newQualificationName").value.trim();
   if (!name) { alert("資格名を入力してください"); return; }
-  await db.collection(QUALIFICATION_COLLECTION).add({ name });
+  const maxOrder = allQualifications.reduce((max, q) => Math.max(max, (q.order !== undefined && q.order !== null) ? q.order : 0), 0);
+  await db.collection(QUALIFICATION_COLLECTION).add({ name, order: maxOrder + 1 });
   document.getElementById("newQualificationName").value = "";
 });
 
@@ -1359,7 +1402,6 @@ function renderQualGrid() {
     filtered = filtered.filter(e => (e.name||"").toLowerCase().includes(q));
   }
   if (filtered.length === 0) { container.innerHTML = '<div class="empty-state">該当する従業員がいません</div>'; return; }
-  filtered = [...filtered].sort((a,b) => (a.name||"").localeCompare(b.name||""));
 
   container.innerHTML = filtered.map(emp => {
     const held = emp.qualifications || [];
@@ -1399,7 +1441,6 @@ document.getElementById("jpegBtnQualGrid").addEventListener("click", () => {
     const q = currentQualGridSearch.trim().toLowerCase();
     list = list.filter(e => (e.name||"").toLowerCase().includes(q));
   }
-  list.sort((a,b) => (a.name||"").localeCompare(b.name||""));
   const rows = list.map(e => [escapeHtml(e.name || "-"), escapeHtml((e.qualifications||[]).join("・") || "-")]);
   exportTableAsJpeg("資格管理", ["従業員","保有資格"], rows, "資格管理");
 });
