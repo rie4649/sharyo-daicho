@@ -496,7 +496,7 @@
       </div>
       <div class="field-row">
         <div class="field"><label>取得日</label><input type="date" id="issueDate"></div>
-        <div class="field"><label>有効期限</label><input type="date" id="expiryDate" required></div>
+        <div class="field"><label>有効期限（任意・無期限の場合は空欄）</label><input type="date" id="expiryDate"></div>
       </div>
       <div class="field">
         <label>備考</label>
@@ -1180,7 +1180,7 @@ function renderPermits() {
               <div class="permit-type-sub">許可番号 ${escapeHtml(p.permitNumber||"-")} ・ 取得日 ${formatDate(p.issueDate)} ・ 有効期限 ${formatDate(p.expiryDate)}</div>
               ${p.notes ? `<div class="card-notes">${escapeHtml(p.notes)}</div>` : ""}
             </div>
-            ${status !== "ok" ? `<div class="badge status-${status}">要更新</div>` : ""}
+            ${status && status !== "ok" ? `<div class="badge status-${status}">要更新</div>` : ""}
           </div>
           <div class="card-actions">
             <button class="btn-edit" onclick="openEditPermit('${p.id}')">編集</button>
