@@ -339,38 +339,25 @@
     <div class="master-sub-tab" data-master="bodyShape">🚚 車体の形状</div>
     <div class="master-sub-tab" data-master="wasteType">📁 許可の種類</div>
     <div class="master-sub-tab" data-master="area">🗺️ エリア</div>
-    <div class="master-sub-tab" data-master="employee">👤 従業員</div>
     <div class="master-sub-tab" data-master="qualification">📜 資格</div>
   </div>
 
   <!-- メーカー -->
   <div class="master-panel active" id="masterPanel-maker">
+    <div style="background:#eef3fb;border-radius:10px;padding:12px;font-size:14px;line-height:1.7;margin-top:14px;">⚙️ メーカーの追加・削除は<b>マスタ管理アプリ</b>の車両タブ(下の「車両の選択肢マスタ」)で行う方式になりました。変更するとここにも自動で反映されます。</div>
     <div id="makerList" style="margin-top:14px;"></div>
-    <div class="add-master-form">
-      <div class="field-row"><div class="field"><label>メーカー名</label><input type="text" id="newMakerName" placeholder="例：いすゞ"></div></div>
-      <div class="field-row"><div class="field"><label>電話番号（任意）</label><input type="tel" id="newMakerPhone" placeholder="0268-XX-XXXX"></div></div>
-      <div class="field-row"><div class="field"><label>住所（任意）</label><input type="text" id="newMakerAddress" placeholder="営業所・販売店の住所など"></div></div>
-      <button type="button" class="submit-btn" id="addMakerBtn">追加</button>
-    </div>
   </div>
 
   <!-- 保険会社 -->
   <div class="master-panel" id="masterPanel-insurance">
+    <div style="background:#eef3fb;border-radius:10px;padding:12px;font-size:14px;line-height:1.7;margin-top:14px;">⚙️ 保険会社の追加・削除は<b>マスタ管理アプリ</b>の車両タブ(下の「車両の選択肢マスタ」)で行う方式になりました。変更するとここにも自動で反映されます。</div>
     <div id="insurerList" style="margin-top:14px;"></div>
-    <div class="add-master-form">
-      <div class="field-row"><div class="field"><label>保険会社名</label><input type="text" id="newInsurerName" placeholder="例：東京海上日動"></div></div>
-      <div class="field-row"><div class="field"><label>電話番号（任意）</label><input type="tel" id="newInsurerPhone" placeholder="0120-XXX-XXX"></div></div>
-      <button type="button" class="submit-btn" id="addInsurerBtn">追加</button>
-    </div>
   </div>
 
   <!-- 車体の形状 -->
   <div class="master-panel" id="masterPanel-bodyShape">
+    <div style="background:#eef3fb;border-radius:10px;padding:12px;font-size:14px;line-height:1.7;margin-top:14px;">⚙️ 車体の形状の追加・削除は<b>マスタ管理アプリ</b>の車両タブ(下の「車両の選択肢マスタ」)で行う方式になりました。変更するとここにも自動で反映されます。</div>
     <div id="bodyShapeList" style="margin-top:14px;"></div>
-    <div class="add-master-form">
-      <div class="field-row"><div class="field"><label>車体の形状名</label><input type="text" id="newBodyShape" placeholder="例：ダンプ"></div></div>
-      <button type="button" class="submit-btn" id="addBodyShapeBtn">追加</button>
-    </div>
   </div>
 
   <!-- 許可の種類 -->
@@ -404,13 +391,6 @@
     </div>
   </div>
   <!-- 従業員 -->
-  <div class="master-panel" id="masterPanel-employee">
-    <div id="employeeList" style="margin-top:14px;"></div>
-    <div class="add-master-form">
-      <div class="field-row"><div class="field"><label>従業員名</label><input type="text" id="newEmployeeName" placeholder="例：水谷さん"></div></div>
-      <button type="button" class="submit-btn" id="addEmployeeBtn">追加</button>
-    </div>
-  </div>
 
   <!-- 資格 -->
   <div class="master-panel" id="masterPanel-qualification">
@@ -641,11 +621,13 @@ function renderVehicles() {
   let filtered = allVehicles;
   if (currentSearch.trim()) {
     const q = currentSearch.trim().toLowerCase();
-    filtered = filtered.filter(v =>
-      (v.companyName||"").toLowerCase().includes(q) ||
-      (v.nickname||"").toLowerCase().includes(q) ||
-      (v.plateNumber||"").toLowerCase().includes(q)
-    );
+    filtered = filtered.filter(v => {
+      const m = masterOf(v);
+      return (v.companyName||"").toLowerCase().includes(q) ||
+        (v.nickname||"").toLowerCase().includes(q) ||
+        (v.plateNumber||"").toLowerCase().includes(q) ||
+        (m && (m.nickname||"").toLowerCase().includes(q));
+    });
   }
   let warn = 0;
   allVehicles.forEach(v => { const s = getStatus(effShaken(v)); if (s === "warn" || s === "expired") warn++; });
@@ -702,12 +684,14 @@ function renderVehicles() {
     const isVehicleExpanded = expandedVehicleIds.has(v.id);
 
     if (!isVehicleExpanded) {
+      const mInfo = masterOf(v);
+      const dispName = (mInfo && mInfo.nickname) ? mInfo.nickname : (v.nickname || v.plateNumber);
       return `
         <div class="card status-${shakenStatus} card-collapsed" onclick="toggleVehicleExpand('${v.id}')">
           <div class="card-top" style="margin-bottom:0;">
             <div>
-              <div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div>
-              <div class="card-sub">${escapeHtml(v.plateNumber||"")} ・ 車検 ${effShaken(v) || "未設定"}${masterOf(v) ? " 🔗" : ""}</div>
+              <div class="card-title">${escapeHtml(dispName)}${(mInfo && mInfo.model) ? `<span style="font-size:13px;font-weight:normal;color:#64748b;">　${escapeHtml(mInfo.model)}</span>` : ""}</div>
+              <div class="card-sub">${escapeHtml(v.plateNumber||"")} ・ 車検 ${effShaken(v) || "未設定"}${mInfo ? " 🔗" : ""}</div>
             </div>
             <div class="collapsed-right">
               ${shakenStatus !== "ok" ? `<div class="badge status-${shakenStatus}">要更新</div>` : ""}
@@ -721,11 +705,13 @@ function renderVehicles() {
       `;
     }
 
+    const mInfo2 = masterOf(v);
+    const dispName2 = (mInfo2 && mInfo2.nickname) ? mInfo2.nickname : (v.nickname || v.plateNumber);
     return `
       <div class="card status-${shakenStatus}">
         <div class="card-top" onclick="toggleVehicleExpand('${v.id}')" style="cursor:pointer;">
           <div>
-            <div class="card-title">${escapeHtml(v.nickname || v.plateNumber)}</div>
+            <div class="card-title">${escapeHtml(dispName2)}${(mInfo2 && mInfo2.model) ? `<span style="font-size:13px;font-weight:normal;color:#64748b;">　${escapeHtml(mInfo2.model)}</span>` : ""}</div>
             <div class="card-sub">
               <span class="company-link" onclick="event.stopPropagation(); toggleCompanyInfo('${v.id}')">${escapeHtml(v.companyName)}</span>
               ・ ${escapeHtml(v.plateNumber||"")}
@@ -794,7 +780,7 @@ function subscribeMasterVehicles() {
     masterVehicleMap = {};
     snapshot.docs.forEach(doc => {
       const d = doc.data();
-      if (d.number) masterVehicleMap[normVehicleKey(d.number)] = { shakenDate: d.shakenDate || "", model: d.model || "" };
+      if (d.number) masterVehicleMap[normVehicleKey(d.number)] = { shakenDate: d.shakenDate || "", model: d.model || "", nickname: d.nickname || "" };
     });
     renderVehicles(); renderPermits(); renderAreaGrid(); renderAreaByArea(); renderVehiclesByMonth();
   }, err => { console.error("マスタ車両の読み込みエラー:", err); });
@@ -824,19 +810,16 @@ function subscribeMakers() {
   db.collection(MAKER_COLLECTION).orderBy("name").onSnapshot(snapshot => {
     allMakers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderVehicles(); populateMakerSelect();
-    renderMasterItems("makerList", allMakers, m => {
-      const parts = [];
-      parts.push(m.phone ? `<a href="tel:${escapeHtml(m.phone)}" onclick="event.stopPropagation()">📞 ${escapeHtml(m.phone)}</a>` : "電話番号未登録");
-      if (m.address) parts.push(`<a href="https://maps.google.com/?q=${encodeURIComponent(m.address)}" target="_blank" onclick="event.stopPropagation()">📍 ${escapeHtml(m.address)}</a>`);
-      return parts.join(" ・ ");
-    }, "deleteMaker", "まだメーカーが登録されていません");
+    const mkBox = document.getElementById("makerList");
+    if (mkBox) mkBox.innerHTML = allMakers.length ? allMakers.map(m => `<div style="padding:10px 12px;border-bottom:1px solid #eee;font-size:15px;">${escapeHtml(m.name||"")}${m.phone?` <a href="tel:${escapeHtml(m.phone)}">📞 ${escapeHtml(m.phone)}</a>`:""}${m.address?`<div style="font-size:12px;color:#8b8b9e;">📍 ${escapeHtml(m.address)}</div>`:""}</div>`).join("") : '<div class="empty-state">まだメーカーが登録されていません</div>';
   });
 }
 function subscribeInsurers() {
   db.collection(INSURER_COLLECTION).orderBy("name").onSnapshot(snapshot => {
     allInsurers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderVehicles(); populateInsuranceSelect();
-    renderMasterItems("insurerList", allInsurers, i => escapeHtml(i.phone||"電話番号未登録"), "deleteInsurer", "まだ保険会社が登録されていません");
+    const insBox = document.getElementById("insurerList");
+    if (insBox) insBox.innerHTML = allInsurers.length ? allInsurers.map(i => `<div style="padding:10px 12px;border-bottom:1px solid #eee;font-size:15px;">${escapeHtml(i.name||"")}${i.phone?` <a href="tel:${escapeHtml(i.phone)}">📞 ${escapeHtml(i.phone)}</a>`:""}</div>`).join("") : '<div class="empty-state">まだ保険会社が登録されていません</div>';
   });
 }
 async function subscribeBodyShapes() {
@@ -850,7 +833,8 @@ async function subscribeBodyShapes() {
     }
     allBodyShapes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     populateBodyShapeSelect();
-    renderMasterItems("bodyShapeList", allBodyShapes, () => "", "deleteBodyShape", "まだ登録されていません");
+    const bsBox = document.getElementById("bodyShapeList");
+    if (bsBox) bsBox.innerHTML = allBodyShapes.length ? allBodyShapes.map(b => `<div style="padding:10px 12px;border-bottom:1px solid #eee;font-size:15px;">${escapeHtml(b.name||"")}</div>`).join("") : '<div class="empty-state">まだ登録されていません</div>';
   });
 }
 async function subscribeWasteTypes() {
@@ -872,7 +856,7 @@ function subscribeEmployees() {
     allEmployees = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const eOrder = (e) => (e.order !== undefined && e.order !== null) ? e.order : allEmployees.indexOf(e);
     allEmployees.sort((a,b) => eOrder(a) - eOrder(b));
-    renderMasterItems("employeeList", allEmployees, () => "", "deleteEmployee", "まだ従業員が登録されていません", "moveEmployee");
+    // 従業員一覧の表示はマスタ管理に一本化(パネル撤去済み)
     renderQualGrid();
     renderQualByQual();
   });
@@ -895,13 +879,6 @@ window.moveEmployee = async function(id, direction) {
     await batch.commit();
   } catch (err) { alert("並び替えエラー: " + err.message); }
 };
-document.getElementById("addEmployeeBtn").addEventListener("click", async () => {
-  const name = document.getElementById("newEmployeeName").value.trim();
-  if (!name) { alert("従業員名を入力してください"); return; }
-  const maxOrder = allEmployees.reduce((max, e) => Math.max(max, (e.order !== undefined && e.order !== null) ? e.order : 0), 0);
-  await db.collection(EMPLOYEE_COLLECTION).add({ name, qualifications: [], order: maxOrder + 1 });
-  document.getElementById("newEmployeeName").value = "";
-});
 
 function subscribeQualifications() {
   db.collection(QUALIFICATION_COLLECTION).onSnapshot(snapshot => {
@@ -1686,14 +1663,6 @@ window.deleteMaker = function(id) {
   if (!confirm("このメーカーを削除しますか？")) return;
   db.collection(MAKER_COLLECTION).doc(id).delete();
 };
-document.getElementById("addMakerBtn").addEventListener("click", async () => {
-  const name = document.getElementById("newMakerName").value.trim();
-  const phone = document.getElementById("newMakerPhone").value.trim();
-  const address = document.getElementById("newMakerAddress").value.trim();
-  if (!name) { alert("メーカー名を入力してください"); return; }
-  await db.collection(MAKER_COLLECTION).add({ name, phone, address, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  document.getElementById("newMakerName").value = ""; document.getElementById("newMakerPhone").value = ""; document.getElementById("newMakerAddress").value = "";
-});
 
 function populateInsuranceSelect(selectedName) {
   const el = document.getElementById("insuranceCompany");
@@ -1704,13 +1673,6 @@ window.deleteInsurer = function(id) {
   if (!confirm("この保険会社を削除しますか？")) return;
   db.collection(INSURER_COLLECTION).doc(id).delete();
 };
-document.getElementById("addInsurerBtn").addEventListener("click", async () => {
-  const name = document.getElementById("newInsurerName").value.trim();
-  const phone = document.getElementById("newInsurerPhone").value.trim();
-  if (!name) { alert("保険会社名を入力してください"); return; }
-  await db.collection(INSURER_COLLECTION).add({ name, phone, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
-  document.getElementById("newInsurerName").value = ""; document.getElementById("newInsurerPhone").value = "";
-});
 
 function populateBodyShapeSelect(selectedName) {
   const el = document.getElementById("bodyShape");
@@ -1723,12 +1685,6 @@ window.deleteBodyShape = function(id) {
   if (!confirm("この車体の形状を削除しますか？")) return;
   db.collection(BODYSHAPE_COLLECTION).doc(id).delete();
 };
-document.getElementById("addBodyShapeBtn").addEventListener("click", async () => {
-  const name = document.getElementById("newBodyShape").value.trim();
-  if (!name) { alert("車体の形状名を入力してください"); return; }
-  await db.collection(BODYSHAPE_COLLECTION).add({ name });
-  document.getElementById("newBodyShape").value = "";
-});
 
 function populateWasteTypeSelect(selectedName) {
   const el = document.getElementById("wasteType");
