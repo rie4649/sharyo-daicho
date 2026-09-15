@@ -334,34 +334,19 @@
 <!-- ================= マスター管理セクション ================= -->
 <div class="section" id="section-master">
   <div class="master-sub-tabs">
-    <div class="master-sub-tab active" data-master="maker">🏭 メーカー</div>
-    <div class="master-sub-tab" data-master="insurance">🛡️ 保険会社</div>
-    <div class="master-sub-tab" data-master="bodyShape">🚚 車体の形状</div>
-    <div class="master-sub-tab" data-master="wasteType">📁 許可の種類</div>
+    <div class="master-sub-tab active" data-master="wasteType">📁 許可の種類</div>
     <div class="master-sub-tab" data-master="area">🗺️ エリア</div>
     <div class="master-sub-tab" data-master="qualification">📜 資格</div>
   </div>
 
   <!-- メーカー -->
-  <div class="master-panel active" id="masterPanel-maker">
-    <div style="background:#eef3fb;border-radius:10px;padding:12px;font-size:14px;line-height:1.7;margin-top:14px;">⚙️ メーカーの追加・削除は<b>マスタ管理アプリ</b>の車両タブ(下の「車両の選択肢マスタ」)で行う方式になりました。変更するとここにも自動で反映されます。</div>
-    <div id="makerList" style="margin-top:14px;"></div>
-  </div>
 
   <!-- 保険会社 -->
-  <div class="master-panel" id="masterPanel-insurance">
-    <div style="background:#eef3fb;border-radius:10px;padding:12px;font-size:14px;line-height:1.7;margin-top:14px;">⚙️ 保険会社の追加・削除は<b>マスタ管理アプリ</b>の車両タブ(下の「車両の選択肢マスタ」)で行う方式になりました。変更するとここにも自動で反映されます。</div>
-    <div id="insurerList" style="margin-top:14px;"></div>
-  </div>
 
   <!-- 車体の形状 -->
-  <div class="master-panel" id="masterPanel-bodyShape">
-    <div style="background:#eef3fb;border-radius:10px;padding:12px;font-size:14px;line-height:1.7;margin-top:14px;">⚙️ 車体の形状の追加・削除は<b>マスタ管理アプリ</b>の車両タブ(下の「車両の選択肢マスタ」)で行う方式になりました。変更するとここにも自動で反映されます。</div>
-    <div id="bodyShapeList" style="margin-top:14px;"></div>
-  </div>
 
   <!-- 許可の種類 -->
-  <div class="master-panel" id="masterPanel-wasteType">
+  <div class="master-panel active" id="masterPanel-wasteType">
     <div id="wasteTypeList" style="margin-top:14px;"></div>
     <div class="add-master-form">
       <div class="field-row"><div class="field"><label>種類名</label><input type="text" id="newWasteType" placeholder="例：産業廃棄物収集運搬業"></div></div>
@@ -810,16 +795,12 @@ function subscribeMakers() {
   db.collection(MAKER_COLLECTION).orderBy("name").onSnapshot(snapshot => {
     allMakers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderVehicles(); populateMakerSelect();
-    const mkBox = document.getElementById("makerList");
-    if (mkBox) mkBox.innerHTML = allMakers.length ? allMakers.map(m => `<div style="padding:10px 12px;border-bottom:1px solid #eee;font-size:15px;">${escapeHtml(m.name||"")}${m.phone?` <a href="tel:${escapeHtml(m.phone)}">📞 ${escapeHtml(m.phone)}</a>`:""}${m.address?`<div style="font-size:12px;color:#8b8b9e;">📍 ${escapeHtml(m.address)}</div>`:""}</div>`).join("") : '<div class="empty-state">まだメーカーが登録されていません</div>';
   });
 }
 function subscribeInsurers() {
   db.collection(INSURER_COLLECTION).orderBy("name").onSnapshot(snapshot => {
     allInsurers = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     renderVehicles(); populateInsuranceSelect();
-    const insBox = document.getElementById("insurerList");
-    if (insBox) insBox.innerHTML = allInsurers.length ? allInsurers.map(i => `<div style="padding:10px 12px;border-bottom:1px solid #eee;font-size:15px;">${escapeHtml(i.name||"")}${i.phone?` <a href="tel:${escapeHtml(i.phone)}">📞 ${escapeHtml(i.phone)}</a>`:""}</div>`).join("") : '<div class="empty-state">まだ保険会社が登録されていません</div>';
   });
 }
 async function subscribeBodyShapes() {
@@ -833,8 +814,6 @@ async function subscribeBodyShapes() {
     }
     allBodyShapes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     populateBodyShapeSelect();
-    const bsBox = document.getElementById("bodyShapeList");
-    if (bsBox) bsBox.innerHTML = allBodyShapes.length ? allBodyShapes.map(b => `<div style="padding:10px 12px;border-bottom:1px solid #eee;font-size:15px;">${escapeHtml(b.name||"")}</div>`).join("") : '<div class="empty-state">まだ登録されていません</div>';
   });
 }
 async function subscribeWasteTypes() {
