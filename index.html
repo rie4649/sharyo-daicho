@@ -771,8 +771,18 @@ function subscribeMasterVehicles() {
   }, err => { console.error("マスタ車両の読み込みエラー:", err); });
 }
 function masterOf(v) {
-  if (!v || !v.nickname) return null;
-  return masterVehicleMap[normVehicleKey(v.nickname)] || null;
+  if (!v) return null;
+  // ① 車番で照合（本来の連動キー）
+  if (v.plateNumber) {
+    const byPlate = masterVehicleMap[normVehicleKey(v.plateNumber)];
+    if (byPlate) return byPlate;
+  }
+  // ② 見つからなければ愛称欄でも照合（愛称に車番が入っている旧データ用）
+  if (v.nickname) {
+    const byNick = masterVehicleMap[normVehicleKey(v.nickname)];
+    if (byNick) return byNick;
+  }
+  return null;
 }
 function effShaken(v) {
   const m = masterOf(v);
