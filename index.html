@@ -393,6 +393,12 @@
     <h2 id="modalTitle">車両を追加</h2>
     <form id="vehicleForm">
       <input type="hidden" id="editId">
+      <div id="masterLinkNotice" style="display:none;background:#ecfdf5;border:1px solid #99f6e4;color:#0f766e;border-radius:10px;padding:10px 12px;font-size:13px;margin-bottom:12px;line-height:1.6;">
+        🔗 この車両は<b>マスタ管理アプリ</b>と連動しています。<br>車両の情報はマスタ管理で直してください（ここで変えられるのは<b>許可エリア</b>だけです）。
+      </div>
+      <div id="masterAddHint" style="display:none;background:#f1f5f9;color:#475569;border-radius:10px;padding:10px 12px;font-size:12px;margin-bottom:12px;line-height:1.6;">
+        💡 先にマスタ管理アプリで車両を登録しておき、ここでは同じ<b>車番</b>を入れると自動で連動します。
+      </div>
       <div class="field">
         <label>メーカー</label>
         <select id="companyName" required></select>
@@ -765,13 +771,15 @@ function subscribeMasterVehicles() {
     masterVehicleMap = {};
     snapshot.docs.forEach(doc => {
       const d = doc.data();
-      if (d.number) masterVehicleMap[normVehicleKey(d.number)] = { shakenDate: d.shakenDate || "", model: d.model || "", nickname: d.nickname || "" };
+      if (d.number) masterVehicleMap[normVehicleKey(d.number)] = { id: doc.id, ...d, shakenDate: d.shakenDate || "", model: d.model || "", nickname: d.nickname || "" };
     });
+    rebuildVehicles();
     renderVehicles(); renderPermits(); renderAreaGrid(); renderAreaByArea(); renderVehiclesByMonth();
   }, err => { console.error("マスタ車両の読み込みエラー:", err); });
 }
 function masterOf(v) {
   if (!v) return null;
+  if (v._master !== undefined) return v._master;
   // ① 車番で照合（本来の連動キー）
   if (v.plateNumber) {
     const byPlate = masterVehicleMap[normVehicleKey(v.plateNumber)];
@@ -789,9 +797,44 @@ function effShaken(v) {
   if (m && m.shakenDate) return m.shakenDate;
   return v.shakenDate || "";
 }
+// ===== マスタ連動：台帳の車両情報はマスタ管理（master_vehicles）の値を表示 =====
+// 許可エリア・並び順だけは業務管理の台帳（vehicleLedger）側のデータを使う
+let rawVehicles = [];
+function mNum(x, fallback) {
+  if (x === undefined || x === null || String(x).trim() === "") return fallback;
+  const n = Number(String(x).replace(/[,，\s]/g, "").normalize("NFKC"));
+  return isNaN(n) ? fallback : n;
+}
+function mStr(x, fallback) {
+  return (x !== undefined && x !== null && String(x).trim() !== "") ? String(x) : (fallback || "");
+}
+function mergeMaster(v) {
+  const m = masterOf(v);
+  if (!m) return { ...v, _master: null };
+  return {
+    ...v,
+    _master: m,
+    plateNumber: m.number || v.plateNumber,
+    nickname: mStr(m.nickname, v.nickname),
+    companyName: mStr(m.maker, v.companyName),
+    registeredDate: mStr(m.firstReg, v.registeredDate),
+    modelType: mStr(m.katashiki, v.modelType),
+    engineOutput: mStr(m.haikiryo, v.engineOutput),
+    insuranceCompany: mStr(m.insurer, v.insuranceCompany),
+    bodyShape: mStr(m.model, v.bodyShape),
+    maxLoad: mNum(m.maxLoad, v.maxLoad),
+    vehicleWeight: mNum(m.weight, v.vehicleWeight),
+    grossWeight: mNum(m.totalWeight, v.grossWeight),
+    shakenDate: mStr(m.shakenDate, v.shakenDate)
+  };
+}
+function rebuildVehicles() {
+  allVehicles = rawVehicles.map(mergeMaster);
+}
 function subscribeVehicles() {
   db.collection(VEHICLE_COLLECTION).onSnapshot(snapshot => {
-    allVehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    rawVehicles = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    rebuildVehicles();
     renderVehicles(); renderPermits(); renderAreaGrid(); renderAreaByArea(); renderVehiclesByMonth();
   }, err => { document.getElementById("listContainer").innerHTML = `<div class="empty-state">読み込みエラー: ${err.message}</div>`; });
 }
@@ -1035,11 +1078,23 @@ function renderVehicleFormAreaCheckboxes(selectedAreas) {
 const vehicleOverlay = document.getElementById("modalOverlay");
 const vehicleFormEl = document.getElementById("vehicleForm");
 
+const MASTER_LOCK_IDS = ["companyName","nickname","plateNumber","registeredDate","shakenDate","insuranceCompany","bodyShape","modelType","engineOutput","maxLoad","vehicleWeight","grossWeight"];
+function setVehicleFormLock(locked) {
+  MASTER_LOCK_IDS.forEach(fid => {
+    const el = document.getElementById(fid);
+    if (!el) return;
+    el.disabled = locked;
+    el.title = locked ? "マスタ管理アプリで管理されています" : "";
+    el.style.background = locked ? "#f1f5f9" : "";
+  });
+  document.getElementById("masterLinkNotice").style.display = locked ? "block" : "none";
+  document.querySelectorAll("#vehicleForm .field-hint").forEach(h => { h.style.display = locked ? "none" : ""; });
+}
 document.getElementById("addBtn").addEventListener("click", () => {
   vehicleFormEl.reset();
   document.getElementById("editId").value = "";
-  document.getElementById("shakenDate").disabled = false;
-  document.getElementById("shakenDate").title = "";
+  setVehicleFormLock(false);
+  document.getElementById("masterAddHint").style.display = "block";
   document.getElementById("modalTitle").textContent = "車両を追加";
   document.getElementById("deleteBtnInModal").style.display = "none";
   populateMakerSelect(""); populateInsuranceSelect(""); populateBodyShapeSelect("");
@@ -1059,23 +1114,15 @@ window.openEdit = function(id) {
   document.getElementById("registeredDate").value = v.registeredDate || "";
   document.getElementById("modelType").value = v.modelType || "";
   document.getElementById("engineOutput").value = v.engineOutput || "";
-  const mst = masterOf(v);
-  const shakenInput = document.getElementById("shakenDate");
-  if (mst && mst.shakenDate) {
-    shakenInput.value = mst.shakenDate;
-    shakenInput.disabled = true;
-    shakenInput.title = "マスタ管理アプリで管理されています";
-  } else {
-    shakenInput.value = v.shakenDate || "";
-    shakenInput.disabled = false;
-    shakenInput.title = "";
-  }
+  document.getElementById("shakenDate").value = v.shakenDate || "";
   populateInsuranceSelect(v.insuranceCompany || "");
   populateBodyShapeSelect(v.bodyShape || "");
   renderVehicleFormAreaCheckboxes(v.permittedAreas || []);
   document.getElementById("maxLoad").value = v.maxLoad || "";
   document.getElementById("vehicleWeight").value = v.vehicleWeight || "";
   document.getElementById("grossWeight").value = v.grossWeight || "";
+  setVehicleFormLock(!!masterOf(v));
+  document.getElementById("masterAddHint").style.display = "none";
   document.getElementById("modalTitle").textContent = "車両を編集";
   document.getElementById("deleteBtnInModal").style.display = "block";
   vehicleOverlay.classList.add("open");
@@ -1096,6 +1143,14 @@ vehicleFormEl.addEventListener("submit", async (e) => {
   e.preventDefault();
   const id = document.getElementById("editId").value;
   const selectedAreas = Array.from(document.querySelectorAll(".vehicle-form-area-checkbox:checked")).map(cb => cb.value);
+  const linkedV = id ? allVehicles.find(x => x.id === id) : null;
+  if (linkedV && masterOf(linkedV)) {
+    try {
+      await db.collection(VEHICLE_COLLECTION).doc(id).update({ permittedAreas: selectedAreas, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      vehicleOverlay.classList.remove("open");
+    } catch (err) { alert("保存エラー: " + err.message); }
+    return;
+  }
   const data = {
     companyName: document.getElementById("companyName").value,
     nickname: document.getElementById("nickname").value.trim(),
@@ -1103,7 +1158,7 @@ vehicleFormEl.addEventListener("submit", async (e) => {
     registeredDate: document.getElementById("registeredDate").value,
     modelType: document.getElementById("modelType").value.trim(),
     engineOutput: document.getElementById("engineOutput").value.trim(),
-    shakenDate: document.getElementById("shakenDate").disabled ? (allVehicles.find(x => x.id === id)?.shakenDate || "") : document.getElementById("shakenDate").value,
+    shakenDate: document.getElementById("shakenDate").value,
     insuranceCompany: document.getElementById("insuranceCompany").value,
     bodyShape: document.getElementById("bodyShape").value,
     maxLoad: document.getElementById("maxLoad").value ? Number(document.getElementById("maxLoad").value) : null,
